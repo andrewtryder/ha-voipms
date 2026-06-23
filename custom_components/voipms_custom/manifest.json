@@ -1,0 +1,11 @@
+{
+  "domain": "voipms_custom",
+  "name": "VoIP.ms Custom Integration",
+  "codeowners": ["@jules"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://voip.ms/m/api.php",
+  "iot_class": "cloud_polling",
+  "requirements": ["zeep==4.2.1"],
+  "version": "1.0.0"
+}
