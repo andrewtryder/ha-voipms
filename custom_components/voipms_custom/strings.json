@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to VoIP.ms",
-        "description": "If you need help with the configuration, see https://voip.ms/m/api.php",
+        "description": "If you need help with the configuration, see the API documentation on the VoIP.ms website.",
         "data": {
           "username": "API Username",
           "password": "API Password",
