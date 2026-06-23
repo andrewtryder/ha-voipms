@@ -1,6 +1,3 @@
 {
-  "name": "VoIP.ms Custom",
-  "render_readme": true,
-  "hacs": "1.0.0",
-  "filename": "voipms_custom"
+  "name": "VoIP.ms Custom"
 }
