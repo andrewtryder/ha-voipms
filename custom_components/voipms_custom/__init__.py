@@ -7,9 +7,8 @@ import logging
 from aiohttp import web
 from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
 
-from homeassistant.components import logbook
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, Platform
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, EVENT_LOGBOOK_ENTRY, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.components.webhook import async_register, async_unregister
 from homeassistant.helpers import entity_registry as er
@@ -37,17 +36,25 @@ def _log_inbound_sms_to_logbook(
 
     entity_id = None
     entity_registry = er.async_get(hass)
-    entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
-    if entities:
-        entity_id = entities[0].entity_id
+    balance_unique_id = f"{entry.entry_id}_balance"
+    for registry_entry in er.async_entries_for_config_entry(
+        entity_registry, entry.entry_id
+    ):
+        if registry_entry.unique_id == balance_unique_id:
+            entity_id = registry_entry.entity_id
+            break
 
-    logbook.async_log_entry(
-        hass,
-        LOGBOOK_NAME,
-        f"SMS from {payload.get('from')} to {payload.get('to')}: {message_text}",
-        DOMAIN,
-        entity_id,
-    )
+    logbook_data = {
+        "name": LOGBOOK_NAME,
+        "message": (
+            f"SMS from {payload.get('from')} to {payload.get('to')}: {message_text}"
+        ),
+        "domain": DOMAIN,
+    }
+    if entity_id is not None:
+        logbook_data["entity_id"] = entity_id
+
+    hass.bus.async_fire(EVENT_LOGBOOK_ENTRY, logbook_data)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
