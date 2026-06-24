@@ -58,6 +58,48 @@ async def test_form_invalid_auth(hass: HomeAssistant, mock_voipms_client) -> Non
     )
 
     assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "invalid_credentials"}
+
+
+async def test_form_ip_not_enabled(hass: HomeAssistant, mock_voipms_client) -> None:
+    """Test we map ip_not_enabled to a specific error."""
+    mock_voipms_client.get_balance.return_value = {"status": "ip_not_enabled"}
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "ip_not_enabled"}
+
+
+async def test_form_unknown_api_status(hass: HomeAssistant, mock_voipms_client) -> None:
+    """Test unknown API statuses fall back to invalid_auth."""
+    mock_voipms_client.get_balance.return_value = {"status": "some_new_status"}
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+
+    assert result2["type"] == FlowResultType.FORM
     assert result2["errors"] == {"base": "invalid_auth"}
 
 

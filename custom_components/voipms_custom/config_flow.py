@@ -18,6 +18,14 @@ from .const import DOMAIN, CONF_DEFAULT_DID
 
 _LOGGER = logging.getLogger(__name__)
 
+# Map VoIP.ms API status values to config-flow translation keys.
+API_STATUS_ERRORS: dict[str, str] = {
+    "invalid_credentials": "invalid_credentials",
+    "ip_not_enabled": "ip_not_enabled",
+    "api_not_enabled": "api_not_enabled",
+    "missing_credentials": "missing_credentials",
+}
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_USERNAME): str,
@@ -44,7 +52,10 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         raise CannotConnect from ex
 
     if result.get("status") != "success":
-        raise InvalidAuth
+        _LOGGER.warning("VoIP.ms auth failed: %s", result)
+        status = result.get("status")
+        error_key = API_STATUS_ERRORS.get(status, "invalid_auth")
+        raise InvalidAuth(error_key)
 
     return {"title": data[CONF_USERNAME]}
 
@@ -67,8 +78,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 info = await validate_input(self.hass, user_input)
             except CannotConnect:
                 errors["base"] = "cannot_connect"
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
+            except InvalidAuth as err:
+                errors["base"] = err.translation_key
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
@@ -86,3 +97,7 @@ class CannotConnect(HomeAssistantError):
 
 class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
+
+    def __init__(self, translation_key: str = "invalid_auth") -> None:
+        """Initialize with a config-flow error translation key."""
+        super().__init__(translation_key=translation_key)

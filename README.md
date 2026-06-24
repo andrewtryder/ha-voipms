@@ -70,12 +70,82 @@ The integration provides the following sensors:
 
 ## Troubleshooting
 
+### Setup authentication errors
+
+If setup fails with **Invalid authentication**, **Failed to connect**, or a more specific message, work through these steps in order.
+
+#### 1. Enable debug logging
+
+Add this to `configuration.yaml`, or use **Settings → System → Logs → Configure loggers**:
+
+```yaml
+logger:
+  default: warning
+  logs:
+    custom_components.voipms_custom: debug
+```
+
+Restart Home Assistant, retry adding the integration, then check **Settings → System → Logs** (or `home-assistant.log`):
+
+| Log message | Meaning |
+|---|---|
+| `Connection error:` | Network, HTTP, or JSON parse failure — not a bad password |
+| `VoIP.ms auth failed:` | API reachable; the logged JSON shows the VoIP.ms `status` value |
+| `Unexpected exception` | Check the stack trace for an integration or environment issue |
+
+#### 2. Confirm VoIP.ms API credentials
+
+Use **API credentials**, not necessarily your web portal login:
+
+1. Log in at [voip.ms](https://voip.ms)
+2. Go to **Main Menu → SOAP and REST/JSON API**
+3. Confirm the **API is enabled**
+4. Copy the **API Username** and **API Password** shown there
+5. If **IP restriction** is enabled, add your Home Assistant instance's **outbound public IP**
+
+The **Default DID** field does not affect authentication during setup.
+
+#### 3. Test the API outside Home Assistant
+
+Run this from a machine on the same outbound network as Home Assistant (ideally the HA host via SSH or the Terminal add-on):
+
+```bash
+curl -sS -G "https://voip.ms/api/v1/rest.php" \
+  --data-urlencode "api_username=YOUR_API_USERNAME" \
+  --data-urlencode "api_password=YOUR_API_PASSWORD" \
+  --data-urlencode "method=getBalance" \
+  --data-urlencode "content_type=json"
+```
+
+| Response `status` | Next step |
+|---|---|
+| `success` | Credentials work — delete any existing VoIP.ms config entry, restart HA, and re-add the integration |
+| `invalid_credentials` | Reset the API password in the VoIP.ms portal and retry |
+| `ip_not_enabled` | Allowlist your HA public IP in VoIP.ms API settings |
+| `api_not_enabled` | Enable the API in the VoIP.ms portal |
+| Timeout or non-JSON body | Fix outbound HTTPS/DNS from the HA host; check proxies and firewalls |
+
+#### 4. Remove stale config entries
+
+The integration allows only one entry per API username. If credentials changed or a prior attempt left a broken entry:
+
+1. **Settings → Devices & Services → VoIP.ms Custom** — delete the entry
+2. Restart Home Assistant
+3. Re-add the integration with current credentials
+
+There is no reconfigure flow yet; credential changes require removing and re-adding the integration.
+
+#### 5. Credential hygiene
+
+- Paste credentials directly from the VoIP.ms portal — avoid trailing spaces
+- Passwords with `&`, `+`, or `%` are URL-encoded automatically; re-type if copied from a mobile device with smart quotes
+- After changing the API password in VoIP.ms, remove and re-add the integration
+
 ### Common Issues
 
 1. **API Authentication Failed**
-   - Ensure your API credentials are correct
-   - Check that your VoIP.ms account is active
-   - Verify you have API access enabled
+   - Follow the [setup authentication errors](#setup-authentication-errors) steps above
+   - Ensure your VoIP.ms account is active
 
 2. **Data Not Updating**
    - Check if the sensors are in the "unknown" state
