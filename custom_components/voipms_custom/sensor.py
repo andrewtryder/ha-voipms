@@ -52,8 +52,8 @@ class VoipmsBaseSensor(CoordinatorEntity[VoipmsDataUpdateCoordinator], SensorEnt
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "VoIP.ms",
-            "manufacturer": "VoIP.ms",
+            "name": "VoIP.MS",
+            "manufacturer": "VoIP.MS",
         }
 
 

@@ -1,6 +1,6 @@
 {
   "domain": "voipms_custom",
-  "name": "VoIP.ms Custom",
+  "name": "VoIP.MS",
   "codeowners": ["@andrewtryder"],
   "config_flow": true,
   "dependencies": [],
@@ -8,5 +8,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/andrewtryder/ha-voipms/issues",
   "requirements": [],
-  "version": "1.0.0"
+  "version": "1.3.1"
 }

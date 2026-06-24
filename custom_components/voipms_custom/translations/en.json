@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect to VoIP.ms",
+        "title": "Connect to VoIP.MS",
         "description": "If you need help with the configuration, see the API documentation on the VoIP.ms website.",
         "data": {
           "username": "API Username",
