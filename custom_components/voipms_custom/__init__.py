@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import logging
-import os
 
-import zeep
 from aiohttp import web
 
 from homeassistant.config_entries import ConfigEntry
@@ -14,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.components.webhook import async_register, async_unregister
 from homeassistant.helpers.network import get_url
 
+from .api import VoipMsRestClient
 from .const import DOMAIN, EVENT_INBOUND_SMS
 from .coordinator import VoipmsDataUpdateCoordinator
 
@@ -33,7 +32,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Setup webhook
     webhook_id = f"voipms_{entry.entry_id}"
 
     async def handle_webhook(
@@ -41,7 +39,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ):
         """Handle incoming webhook from VoIP.ms."""
         try:
-            # Support both POST (form data) and GET (query parameters)
             if request.method == "POST":
                 data = await request.post()
             else:
@@ -49,10 +46,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if not data:
                 data = {}
 
-            # Fire an event
             hass.bus.async_fire(EVENT_INBOUND_SMS, dict(data))
 
-            return web.Response(text="OK")
+            return web.Response(text="ok")
         except Exception as err:
             _LOGGER.error("Error handling VoIP.ms webhook: %s", err)
             return web.Response(status=500)
@@ -65,12 +61,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         handle_webhook,
     )
 
-    # Try to register webhook with VoIP.ms
     try:
         external_url = get_url(hass, prefer_external=True, allow_cloud=True)
         webhook_url = f"{external_url}/api/webhook/{webhook_id}"
 
-        # Determine DID to set SMS callback
         from .const import CONF_DEFAULT_DID
 
         did = entry.data.get(CONF_DEFAULT_DID)
@@ -78,16 +72,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if did:
 
             def register_webhook():
-                wsdl_path = os.path.join(os.path.dirname(__file__), "server.wsdl")
-                client = zeep.Client(wsdl=wsdl_path)
-                result = client.service.setSMS(
-                    api_username=entry.data[CONF_USERNAME],
-                    api_password=entry.data[CONF_PASSWORD],
-                    did=did,
-                    enable=1,
-                    url_callback=webhook_url,
+                client = VoipMsRestClient(
+                    entry.data[CONF_USERNAME],
+                    entry.data[CONF_PASSWORD],
                 )
-                return result
+                return client.set_sms(did=did, enable=1, url_callback=webhook_url)
 
             result = await hass.async_add_executor_job(register_webhook)
             _LOGGER.info("Registered VoIP.ms webhook %s: %s", webhook_url, result)
@@ -105,7 +94,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
 
-    # Unregister webhook
     webhook_id = f"voipms_{entry.entry_id}"
     async_unregister(hass, webhook_id)
 

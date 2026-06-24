@@ -66,7 +66,9 @@ class VoipMsRestClient:
             raise VoipMsApiError("VoIP.ms REST API returned invalid JSON") from ex
 
         if not isinstance(result, dict):
-            raise VoipMsApiError("VoIP.ms REST API returned an unexpected response shape")
+            raise VoipMsApiError(
+                "VoIP.ms REST API returned an unexpected response shape"
+            )
 
         return result
 
