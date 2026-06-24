@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from aiohttp import web
+from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, Platform
@@ -13,7 +14,7 @@ from homeassistant.components.webhook import async_register, async_unregister
 from homeassistant.helpers.network import get_url
 
 from .api import VoipMsRestClient
-from .const import DOMAIN, EVENT_INBOUND_SMS
+from .const import DOMAIN, EVENT_INBOUND_SMS, build_webhook_callback_url
 from .coordinator import VoipmsDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,7 +47,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if not data:
                 data = {}
 
-            hass.bus.async_fire(EVENT_INBOUND_SMS, dict(data))
+            payload = dict(data)
+            hass.bus.async_fire(EVENT_INBOUND_SMS, payload)
+            _LOGGER.info(
+                "Received VoIP.ms SMS from %s to %s (id=%s)",
+                payload.get("from"),
+                payload.get("to"),
+                payload.get("id"),
+            )
 
             return web.Response(text="ok")
         except Exception as err:
@@ -59,11 +67,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "VoIP.ms SMS",
         webhook_id,
         handle_webhook,
+        allowed_methods=(METH_GET, METH_POST, METH_PUT),
     )
 
     try:
         external_url = get_url(hass, prefer_external=True, allow_cloud=True)
-        webhook_url = f"{external_url}/api/webhook/{webhook_id}"
+        webhook_url = build_webhook_callback_url(external_url, webhook_id)
 
         from .const import CONF_DEFAULT_DID
 
