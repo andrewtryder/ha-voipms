@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from homeassistant.util import dt as dt_util
 
@@ -53,8 +53,7 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning("Failed to fetch balance: %s", balance_result)
 
         except (VoipMsApiError, ValueError) as ex:
-            _LOGGER.error("Error fetching balance: %s", ex)
-            raise UpdateFailed(f"Error fetching balance: {ex}") from ex
+            _LOGGER.warning("Error fetching balance: %s", ex)
 
         try:
             now = dt_util.now()

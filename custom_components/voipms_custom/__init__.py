@@ -7,10 +7,12 @@ import logging
 from aiohttp import web
 from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
 
+from homeassistant.components import logbook
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.components.webhook import async_register, async_unregister
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.network import get_url
 
 from .api import VoipMsRestClient
@@ -20,6 +22,32 @@ from .coordinator import VoipmsDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.NOTIFY]
+
+LOGBOOK_NAME = "VoIP.MS"
+MAX_SMS_LOGBOOK_MESSAGE_LEN = 120
+
+
+def _log_inbound_sms_to_logbook(
+    hass: HomeAssistant, entry: ConfigEntry, payload: dict
+) -> None:
+    """Write an inbound SMS entry to the Home Assistant logbook."""
+    message_text = str(payload.get("message") or "")
+    if len(message_text) > MAX_SMS_LOGBOOK_MESSAGE_LEN:
+        message_text = f"{message_text[: MAX_SMS_LOGBOOK_MESSAGE_LEN - 3]}..."
+
+    entity_id = None
+    entity_registry = er.async_get(hass)
+    entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+    if entities:
+        entity_id = entities[0].entity_id
+
+    logbook.async_log_entry(
+        hass,
+        LOGBOOK_NAME,
+        f"SMS from {payload.get('from')} to {payload.get('to')}: {message_text}",
+        DOMAIN,
+        entity_id,
+    )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -49,6 +77,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             payload = dict(data)
             hass.bus.async_fire(EVENT_INBOUND_SMS, payload)
+            _log_inbound_sms_to_logbook(hass, entry, payload)
             _LOGGER.info(
                 "Received VoIP.ms SMS from %s to %s (id=%s)",
                 payload.get("from"),

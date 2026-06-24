@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
 from homeassistant.components.webhook import async_handle_webhook
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, EVENT_LOGBOOK_ENTRY
 from homeassistant.core import HomeAssistant
 from homeassistant.util.aiohttp import MockRequest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -120,3 +120,45 @@ async def test_inbound_sms_webhook_fires_event_on_get(
     assert events[0]["message"] == "hello"
     assert events[0]["id"] == "42"
     assert events[0]["date"] == "2024-01-01"
+
+
+async def test_inbound_sms_webhook_writes_logbook_entry(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test GET webhook request writes an Activity/logbook entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    logbook_events: list = []
+
+    def capture_logbook(event):
+        logbook_events.append(event.data)
+
+    hass.bus.async_listen(EVENT_LOGBOOK_ENTRY, capture_logbook)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01",
+    )
+    await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert len(logbook_events) == 1
+    assert logbook_events[0]["name"] == "VoIP.MS"
+    assert logbook_events[0]["domain"] == DOMAIN
+    assert "SMS from 5559876543 to 5551234567: hello" in logbook_events[0]["message"]
+    assert logbook_events[0]["entity_id"] == "sensor.voip_ms_account_balance"

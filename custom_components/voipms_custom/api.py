@@ -83,6 +83,10 @@ class VoipMsRestClient:
             date_from=date_from,
             date_to=date_to,
             timezone=timezone,
+            answered=1,
+            noanswer=1,
+            busy=1,
+            failed=1,
         )
 
     def send_sms(self, *, did: str, dst: str, message: str) -> dict[str, Any]:
