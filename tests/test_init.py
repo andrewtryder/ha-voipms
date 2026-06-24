@@ -4,7 +4,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.voipms_custom.const import DOMAIN, CONF_DEFAULT_DID
+from custom_components.voipms_custom.const import (
+    CONF_DEFAULT_DID,
+    DOMAIN,
+    build_webhook_callback_url,
+)
 
 
 async def test_setup_unload_entry(hass: HomeAssistant, mock_voipms_client) -> None:
@@ -26,6 +30,11 @@ async def test_setup_unload_entry(hass: HomeAssistant, mock_voipms_client) -> No
     assert entry.entry_id in hass.data[DOMAIN]
 
     mock_voipms_client.set_sms.assert_called_once()
+    call_kwargs = mock_voipms_client.set_sms.call_args.kwargs
+    expected_url = build_webhook_callback_url(
+        "http://example.com", f"voipms_{entry.entry_id}"
+    )
+    assert call_kwargs["url_callback"] == expected_url
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
