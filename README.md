@@ -35,12 +35,11 @@ You'll need to provide the following configuration parameters:
 - **API Password**: Your VoIP.ms API password
 - **Default DID**: The phone number used for SMS and webhook registration
 
-The integration will automatically populate various sensors related to your VoIP.ms account including:
+The integration will automatically populate sensors related to your VoIP.ms account including:
 
 - Current balance
-- Call history
-- Number usage
-- Service status
+- Inbound calls (last 24 hours)
+- Outbound calls (last 24 hours)
 
 ## Usage
 
@@ -60,6 +59,48 @@ automation:
 ```
 
 Inbound SMS messages fire a `voipms_inbound_sms` event on the Home Assistant event bus and appear in **Activity** (logbook). Listen for that event in **Developer Tools → Events** or use it as an automation trigger.
+
+## Services
+
+### `voipms_custom.send_sms`
+
+Send an SMS through VoIP.MS. Exposed as a service so automations, scripts, and the Lovelace card can send messages.
+
+| Field | Required | Description |
+|---|---|---|
+| `to` | yes | Destination phone number |
+| `message` | yes | Text message to send |
+| `did` | no | Sender DID. Defaults to the configured Default DID |
+
+```yaml
+service: voipms_custom.send_sms
+data:
+  to: "5559876543"
+  message: "Hello from Home Assistant"
+  did: "5551234567"  # optional
+```
+
+A `notify.voip_ms_sms` entity is also created for standard notify integrations; use `voipms_custom.send_sms` when you need to specify the recipient directly.
+
+## Lovelace card (optional)
+
+A compact "Send SMS" card is bundled in this repo at [`frontend/dist/voipms-sms-card.js`](frontend/dist/voipms-sms-card.js). It provides From DID, To, and Message fields and a Send button that calls `voipms_custom.send_sms`.
+
+### Install as a Lovelace resource
+
+1. Download [`frontend/dist/voipms-sms-card.js`](frontend/dist/voipms-sms-card.js) to `/config/www/voipms-sms-card.js` on your Home Assistant instance (e.g., via the Terminal add-on or Samba).
+2. Go to **Settings → Dashboards → Resources → Add resource**.
+3. URL: `/local/voipms-sms-card.js`, Type: **JavaScript module**.
+4. Refresh your browser.
+
+### Card configuration
+
+```yaml
+type: custom:voipms-sms-card
+title: Send SMS         # optional, defaults to "Send SMS"
+did: "5551234567"       # optional, pre-fills the From DID
+to: "5559876543"        # optional, pre-fills the To field
+```
 
 ## Sensors
 
