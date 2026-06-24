@@ -1,0 +1,61 @@
+---
+root: true
+targets: ["*"]
+description: "Organization-wide engineering rules"
+globs: ["*"]
+---
+
+# Organization Engineering Rules
+
+## Commits and pull requests
+
+Use Conventional Commits. PR titles must be semantic.
+
+Examples:
+
+- `feat(api): add reading lookup endpoint`
+- `fix(worker): handle Cloudflare timeout`
+- `docs(readme): clarify local setup`
+- `chore(ci): update release workflow`
+
+## Before editing
+
+Inspect existing patterns before adding new abstractions.
+
+## Before finishing
+
+Run the checks listed in `.repo-policy.yml`.
+
+## CI/CD safety
+
+Do not relax linting, typechecking, tests, coverage, or deployment protections to make a change pass.
+Do not modify release or deploy workflows unless the task explicitly requires it.
+
+## Secrets
+
+Never commit secrets, tokens, credentials, private keys, `.env` files, or generated production configuration.
+
+## Repository governance
+
+Repositories should include:
+
+- `CONTRIBUTING.md`
+- `LICENSE` or `LICENSE.md`
+- `.github/PULL_REQUEST_TEMPLATE.md`
+
+Never modify license terms unless the user explicitly asks for a license change.
+Do not add an open-source license to a private/proprietary repository unless explicitly instructed.
+When adding a license file, match the license type to the repository visibility: MIT or similar for public/open-source repos, proprietary/all-rights-reserved for private repos.
+Check `.repo-policy.yml` for the `visibility` and `license` fields to determine the correct license.
+
+## Related docs
+
+- `docs/concepts.md`
+- `docs/ai-rules-maintenance.md`
+- `docs/profiles.md`
+- `docs/detection.md`
+- `docs/branch-protection.md`
+- `docs/template-drift.md`
+- `docs/deployment/cloudflare.md`
+- `docs/deployment/gcp.md`
+- `docs/deployment/railway.md`

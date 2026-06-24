@@ -1,0 +1,39 @@
+name: ha-voipms
+profile: python-service
+visibility: public
+license: MIT
+governance:
+  contributing: required
+  pull_request_template: required
+python_version: "3.12"
+package_manager: pip-requirements
+
+commands:
+  install: python -m pip install -r requirements.txt -r requirements-dev.txt
+  install_dev: python -m pip install -r requirements.txt -r requirements-dev.txt
+  format_check: ruff format --check .
+  lint: ruff check .
+  typecheck: ""
+  test: coverage run -m pytest
+  coverage: coverage report
+
+quality_gates:
+  semantic_pr_title: required
+  ai_rules_sync: required
+  coverage: report-only
+  docs: required
+
+release:
+  release_please: true
+  strategy: simple
+  production_branch: main
+
+deploy:
+  provider: repo-specific
+  workflow: repo-specific
+
+migration_notes: >
+  Coverage default threshold (report-only) is safe for migration.
+  Add --fail-under=<threshold> to the coverage command when ready.
+  typecheck is left empty by design. Python typechecking (mypy, pyright)
+  is adopted repo-by-repo; add a typecheck command when the repo is ready.

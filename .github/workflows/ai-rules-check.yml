@@ -1,0 +1,48 @@
+name: AI Rules
+
+on:
+  pull_request:
+    paths:
+      - ".rulesync/**"
+      - "rulesync.jsonc"
+      - "AGENTS.md"
+      - ".cursor/**"
+      - ".agents/**"
+      - ".repo-policy.yml"
+      - ".github/workflows/ai-rules-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ai-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect Node version source
+        id: node-version
+        shell: bash
+        run: |
+          if [[ -f .nvmrc ]]; then
+            echo "has_nvmrc=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_nvmrc=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.node-version.outputs.has_nvmrc == 'true'
+        with:
+          node-version-file: ".nvmrc"
+      - uses: actions/setup-node@v4
+        if: steps.node-version.outputs.has_nvmrc != 'true'
+        with:
+          node-version: "24"
+      - name: Regenerate AI rules
+        run: npx -y rulesync generate
+      - name: Fail if generated files are stale
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "::error::AI rules are out of sync. Run: npx rulesync generate"
+            git status --porcelain
+            git --no-pager diff
+            exit 1
+          fi

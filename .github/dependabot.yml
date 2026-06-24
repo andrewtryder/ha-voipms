@@ -1,0 +1,35 @@
+# Dependabot configuration
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+#
+# This is the baseline template. Repos should copy this file to .github/dependabot.yml
+# and customize it for their project.
+#
+# For monorepos or repos with nested projects (e.g., packages/*, apps/*),
+# add additional directory entries for each sub-project.
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    versioning-strategy: increase
+    open-pull-requests-limit: 5
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Python dependency update strategy is adopted repo-by-repo.
+    # Pin groups and open-pull-requests-limit as needed.

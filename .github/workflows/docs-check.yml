@@ -1,0 +1,139 @@
+name: Docs
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Required docs exist
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          required = [
+              "README.md",
+              ".repo-policy.yml",
+              "AGENTS.md",
+              "CONTRIBUTING.md",
+              ".gitignore",
+          ]
+
+          alternatives = [
+              (".github/PULL_REQUEST_TEMPLATE.md", "PULL_REQUEST_TEMPLATE.md"),
+          ]
+
+          recommended = [
+              ("LICENSE", "LICENSE.md"),
+              (".editorconfig",),
+              (".env.example",),
+              ("SECURITY.md",),
+          ]
+
+          missing = []
+
+          for item in required:
+              if not Path(item).is_file():
+                  missing.append(item)
+
+          for group in alternatives:
+              if not any(Path(item).is_file() for item in group):
+                  missing.append(" or ".join(group))
+
+          for group in recommended:
+              if not any(Path(item).is_file() for item in group):
+                  print(f"::warning::Recommended file missing: {' or '.join(group)}")
+
+          policy = Path(".repo-policy.yml")
+          if policy.is_file():
+              text = policy.read_text(encoding="utf-8", errors="ignore")
+              visibility = None
+              license_value = None
+              vis_match = re.search(r"(?m)^visibility:\s*[\"']?([^\"'\n#]+)", text)
+              if vis_match:
+                  visibility = vis_match.group(1).strip().lower()
+              match = re.search(r"(?m)^license:\s*[\"']?([^\"'\n#]+)", text)
+              if match:
+                  license_value = match.group(1).strip().lower()
+              open_source_values = {
+                  "mit",
+                  "apache-2.0",
+                  "bsd-2-clause",
+                  "bsd-3-clause",
+                  "mpl-2.0",
+                  "gpl-3.0",
+                  "lgpl-3.0",
+                  "agpl-3.0",
+                  "isc",
+              }
+              closed_values = {"proprietary", "none", "unlicensed"}
+              has_license = Path("LICENSE").is_file() or Path("LICENSE.md").is_file()
+              if license_value in closed_values and visibility == "public":
+                  print(
+                      "::warning::.repo-policy.yml declares a public repository with a "
+                      f"closed license ({license_value}); review visibility and license"
+                  )
+              elif license_value in open_source_values and not has_license:
+                  print(
+                      "::warning::.repo-policy.yml declares an open-source "
+                      f"license ({license_value}) but LICENSE/LICENSE.md is missing"
+                  )
+
+          if missing:
+              print("Required documentation files are missing:")
+              for item in missing:
+                  print(f"- {item}")
+              raise SystemExit(1)
+
+          print("Required documentation files exist.")
+          PY
+
+      - name: README contains recommended concepts
+        env:
+          DOCS_CHECK_STRICT: ${{ vars.DOCS_CHECK_STRICT || 'false' }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          text = Path("README.md").read_text(encoding="utf-8", errors="ignore").lower()
+
+          concepts = {
+              "overview": ["overview", "about", "what is", "introduction", "description"],
+              "local development": ["local development", "local setup", "getting started", "development", "setup"],
+              "checks": ["checks", "ci", "quality gates", "lint", "test", "coverage", "typecheck"],
+              "deployment or release": ["deploy", "release", "publish", "continuous deployment"],
+              "environment/secrets": ["environment", "env", "secret", "variable", "none required"],
+              "ai/editor instructions": ["ai", "agent", "cursor", "editor", "rulesync", "ag"],
+          }
+
+          missing = [
+              concept
+              for concept, keywords in concepts.items()
+              if not any(keyword in text for keyword in keywords)
+          ]
+
+          if not missing:
+              print("README contains recommended concepts.")
+              raise SystemExit(0)
+
+          message = (
+              f"README.md missing recommended concepts: {missing}. "
+              "Recommended concepts: overview, local development, checks, "
+              "deployment or release, environment/secrets, and AI/editor instructions."
+          )
+
+          if os.environ.get("DOCS_CHECK_STRICT", "false").lower() == "true":
+              raise SystemExit(message)
+
+          print(f"::warning::{message}")
+          PY

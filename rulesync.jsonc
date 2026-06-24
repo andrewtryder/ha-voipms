@@ -1,0 +1,17 @@
+{
+  "$schema": "https://github.com/dyoshikawa/rulesync/releases/latest/download/config-schema.json",
+  "targets": {
+    "agentsmd": {
+      "rules": true
+    },
+    "cursor": {
+      "rules": true
+    },
+    "antigravity-ide": {
+      "rules": true
+    }
+  },
+  "outputRoots": ["."],
+  "delete": true
+}
+
