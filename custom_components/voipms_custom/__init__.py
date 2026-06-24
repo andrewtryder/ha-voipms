@@ -8,7 +8,12 @@ from aiohttp import web
 from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, EVENT_LOGBOOK_ENTRY, Platform
+from homeassistant.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    EVENT_LOGBOOK_ENTRY,
+    Platform,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.components.webhook import async_register, async_unregister
 from homeassistant.helpers import entity_registry as er
