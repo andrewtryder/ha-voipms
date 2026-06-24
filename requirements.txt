@@ -1,1 +1,1 @@
-zeep==4.2.1
+# Runtime dependencies are declared in custom_components/voipms_custom/manifest.json.
