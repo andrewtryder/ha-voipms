@@ -2,10 +2,12 @@
 
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
+from homeassistant.util import dt as dt_util
 
 from .api import VoipMsApiError, VoipMsRestClient
 from .const import DOMAIN, UPDATE_INTERVAL
@@ -46,7 +48,7 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
             balance_result = self.client.get_balance()
 
             if balance_result.get("status") == "success":
-                data["balance"] = balance_result.get("balance")
+                data["balance"] = self._extract_balance(balance_result.get("balance"))
             else:
                 _LOGGER.warning("Failed to fetch balance: %s", balance_result)
 
@@ -55,13 +57,18 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Error fetching balance: {ex}") from ex
 
         try:
-            now = datetime.now()
+            now = dt_util.now()
             yesterday = now - timedelta(days=1)
 
             date_from = yesterday.strftime("%Y-%m-%d")
             date_to = now.strftime("%Y-%m-%d")
+            timezone = self._timezone_offset_hours(now)
 
-            cdr_result = self.client.get_cdr(date_from=date_from, date_to=date_to)
+            cdr_result = self.client.get_cdr(
+                date_from=date_from,
+                date_to=date_to,
+                timezone=timezone,
+            )
 
             if cdr_result.get("status") == "success":
                 cdrs = cdr_result.get("cdr", [])
@@ -70,7 +77,7 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
 
                 inbound_count = 0
                 outbound_count = 0
-                threshold_time = now - timedelta(hours=24)
+                threshold_time = now.replace(tzinfo=None) - timedelta(hours=24)
 
                 for call in cdrs:
                     try:
@@ -98,3 +105,18 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Error fetching CDR: %s", ex)
 
         return data
+
+    @staticmethod
+    def _extract_balance(balance: Any) -> Any:
+        """Extract the current balance from simple or advanced balance responses."""
+        if isinstance(balance, dict):
+            return balance.get("current_balance")
+        return balance
+
+    @staticmethod
+    def _timezone_offset_hours(now: datetime) -> int:
+        """Return a VoIP.ms-compatible whole-hour UTC offset."""
+        offset = now.utcoffset()
+        if offset is None:
+            return 0
+        return int(offset.total_seconds() // 3600)
