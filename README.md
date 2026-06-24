@@ -59,7 +59,7 @@ automation:
           message: "Your VoIP.ms balance is running low: {{ states('sensor.voip_ms_account_balance') }}"
 ```
 
-Inbound SMS messages fire a `voipms_inbound_sms` event on the Home Assistant event bus. Listen for that event in **Developer Tools → Events** or use it as an automation trigger.
+Inbound SMS messages fire a `voipms_inbound_sms` event on the Home Assistant event bus and appear in **Activity** (logbook). Listen for that event in **Developer Tools → Events** or use it as an automation trigger.
 
 ## Sensors
 
@@ -184,7 +184,7 @@ Restart Home Assistant, send a test SMS, then check logs for:
 
 | Log message | Meaning |
 |---|---|
-| `Received VoIP.ms SMS from ...` | Webhook delivered successfully; check **Developer Tools → Events** for `voipms_inbound_sms` |
+| `Received VoIP.ms SMS from ...` | Webhook delivered successfully; check **Activity** and **Developer Tools → Events** for `voipms_inbound_sms` |
 | `Webhook ... only supports ... methods but GET was received` | Old integration version — update to v1.3.1+ and reload |
 | `Received remote request for local webhook` | External URL not reachable; fix network or Nabu Casa setup |
 | No `voipms_custom` or `webhook` entries | VoIP.ms may not be reaching your HA instance |
@@ -201,7 +201,7 @@ The integration registers this URL automatically via the API when you reload. Yo
 
 #### 6. Listen for the inbound SMS event
 
-In **Developer Tools → Events**, start listening for `voipms_inbound_sms`, then send a test SMS. A successful delivery fires an event with `to`, `from`, `message`, `id`, and `date` fields.
+In **Developer Tools → Events**, start listening for `voipms_inbound_sms`, then send a test SMS. A successful delivery fires an event with `to`, `from`, `message`, `id`, and `date` fields and adds an entry to **Activity**.
 
 ### Common Issues
 

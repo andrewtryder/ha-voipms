@@ -8,9 +8,15 @@ from aiohttp import web
 from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, Platform
+from homeassistant.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    EVENT_LOGBOOK_ENTRY,
+    Platform,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.components.webhook import async_register, async_unregister
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.network import get_url
 
 from .api import VoipMsRestClient
@@ -20,6 +26,40 @@ from .coordinator import VoipmsDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.NOTIFY]
+
+LOGBOOK_NAME = "VoIP.MS"
+MAX_SMS_LOGBOOK_MESSAGE_LEN = 120
+
+
+def _log_inbound_sms_to_logbook(
+    hass: HomeAssistant, entry: ConfigEntry, payload: dict
+) -> None:
+    """Write an inbound SMS entry to the Home Assistant logbook."""
+    message_text = str(payload.get("message") or "")
+    if len(message_text) > MAX_SMS_LOGBOOK_MESSAGE_LEN:
+        message_text = f"{message_text[: MAX_SMS_LOGBOOK_MESSAGE_LEN - 3]}..."
+
+    entity_id = None
+    entity_registry = er.async_get(hass)
+    balance_unique_id = f"{entry.entry_id}_balance"
+    for registry_entry in er.async_entries_for_config_entry(
+        entity_registry, entry.entry_id
+    ):
+        if registry_entry.unique_id == balance_unique_id:
+            entity_id = registry_entry.entity_id
+            break
+
+    logbook_data = {
+        "name": LOGBOOK_NAME,
+        "message": (
+            f"SMS from {payload.get('from')} to {payload.get('to')}: {message_text}"
+        ),
+        "domain": DOMAIN,
+    }
+    if entity_id is not None:
+        logbook_data["entity_id"] = entity_id
+
+    hass.bus.async_fire(EVENT_LOGBOOK_ENTRY, logbook_data)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -49,6 +89,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             payload = dict(data)
             hass.bus.async_fire(EVENT_INBOUND_SMS, payload)
+            _log_inbound_sms_to_logbook(hass, entry, payload)
             _LOGGER.info(
                 "Received VoIP.ms SMS from %s to %s (id=%s)",
                 payload.get("from"),
