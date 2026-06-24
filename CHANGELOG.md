@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/andrewtryder/ha-voipms/compare/v1.2.0...v1.3.0) (2026-06-24)
+
+
+### Features
+
+* **config:** improve setup auth diagnostics and troubleshooting ([25b29a0](https://github.com/andrewtryder/ha-voipms/commit/25b29a0b33914e73257fc452936c00778ecac868))
+* **config:** improve setup auth diagnostics and troubleshooting ([93fdbd1](https://github.com/andrewtryder/ha-voipms/commit/93fdbd12c06567b5564a5d2708326324223c4de3))
+
 ## [1.2.0](https://github.com/andrewtryder/ha-voipms/compare/v1.1.0...v1.2.0) (2026-06-24)
 
 
