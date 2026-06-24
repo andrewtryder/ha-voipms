@@ -1,4 +1,5 @@
 """Constants for the VoIP.ms Custom integration."""
+
 import logging
 from datetime import timedelta
 

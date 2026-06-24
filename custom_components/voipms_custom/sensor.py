@@ -1,4 +1,5 @@
 """Sensor platform for VoIP.ms Custom integration."""
+
 from __future__ import annotations
 
 import logging
@@ -39,7 +40,9 @@ async def async_setup_entry(
 class VoipmsBaseSensor(CoordinatorEntity[VoipmsDataUpdateCoordinator], SensorEntity):
     """Base class for VoIP.ms sensors."""
 
-    def __init__(self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._entry = entry
@@ -61,9 +64,11 @@ class VoipmsBalanceSensor(VoipmsBaseSensor):
     _attr_name = "Account Balance"
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_state_class = SensorStateClass.TOTAL
-    _attr_native_unit_of_measurement = "USD" # Assuming USD, adjust if needed
+    _attr_native_unit_of_measurement = "USD"  # Assuming USD, adjust if needed
 
-    def __init__(self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry
+    ) -> None:
         """Initialize the balance sensor."""
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_balance"
@@ -84,7 +89,9 @@ class VoipmsInboundCallsSensor(VoipmsBaseSensor):
     _attr_state_class = SensorStateClass.TOTAL
     _attr_native_unit_of_measurement = "calls"
 
-    def __init__(self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry
+    ) -> None:
         """Initialize the inbound calls sensor."""
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_inbound_calls_24h"
@@ -105,7 +112,9 @@ class VoipmsOutboundCallsSensor(VoipmsBaseSensor):
     _attr_state_class = SensorStateClass.TOTAL
     _attr_native_unit_of_measurement = "calls"
 
-    def __init__(self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry
+    ) -> None:
         """Initialize the outbound calls sensor."""
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_outbound_calls_24h"
