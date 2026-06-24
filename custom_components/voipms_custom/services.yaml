@@ -1,0 +1,26 @@
+send_sms:
+  name: Send SMS
+  description: Send an SMS message through VoIP.MS.
+  fields:
+    to:
+      name: To
+      description: Destination phone number.
+      required: true
+      example: "5559876543"
+      selector:
+        text:
+    message:
+      name: Message
+      description: Text message to send.
+      required: true
+      example: "Hello from Home Assistant"
+      selector:
+        text:
+          multiline: true
+    did:
+      name: From DID
+      description: Sender DID. Defaults to the configured Default DID.
+      required: false
+      example: "5551234567"
+      selector:
+        text:

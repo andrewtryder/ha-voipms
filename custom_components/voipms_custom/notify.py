@@ -13,7 +13,6 @@ from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.service import async_set_service_schema
 
 from .api import VoipMsRestClient
 from .const import CONF_DEFAULT_DID, DOMAIN
@@ -54,29 +53,6 @@ async def async_setup_entry(
     hass.services.async_register(
         DOMAIN, SERVICE_SEND_SMS, async_send_sms_service, schema=SEND_SMS_SCHEMA
     )
-
-    service_desc = {
-        "name": "Send an SMS",
-        "description": "Send an SMS message through VoIP.MS.",
-        "fields": {
-            ATTR_TO: {
-                "name": "To",
-                "description": "Destination phone number.",
-                "required": True,
-            },
-            ATTR_MESSAGE: {
-                "name": "Message",
-                "description": "Text message to send.",
-                "required": True,
-            },
-            ATTR_DID: {
-                "name": "From DID",
-                "description": "Sender DID. Defaults to the config entry DID.",
-                "required": False,
-            },
-        },
-    }
-    async_set_service_schema(hass, DOMAIN, SERVICE_SEND_SMS, service_desc)
 
 
 class VoipmsNotifyEntity(NotifyEntity):
