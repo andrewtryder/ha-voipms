@@ -1,7 +1,7 @@
 # VoIP.ms Custom Integration
 
 <p align="center">
-  <img src="images/voipms-logo.png" alt="VoIP.ms" width="360">
+  <img src="images/voipms-logo-fallback.png" alt="VoIP.ms" width="360">
 </p>
 
 This repository contains the **VoIP.ms Custom Integration** for Home Assistant, enabling call handling, SMS messaging, and balance monitoring with the VoIP.ms API.
