@@ -4,12 +4,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-import os
 
 import voluptuous as vol
-import zeep
-from zeep.exceptions import Fault
-from requests.exceptions import RequestException
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
@@ -17,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
+from .api import VoipMsApiError, VoipMsRestClient
 from .const import DOMAIN, CONF_DEFAULT_DID
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,39 +31,21 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     """Validate the user input allows us to connect."""
 
     def test_connection():
-        # Load WSDL from local file
-        wsdl_path = os.path.join(os.path.dirname(__file__), "server.wsdl")
-        client = zeep.Client(wsdl=wsdl_path)
-
-        # Call getBalance to verify credentials
-        result = client.service.getBalance(
-            api_username=data[CONF_USERNAME],
-            api_password=data[CONF_PASSWORD],
+        client = VoipMsRestClient(
+            data[CONF_USERNAME],
+            data[CONF_PASSWORD],
         )
-        return result
+        return client.get_balance()
 
     try:
         result = await hass.async_add_executor_job(test_connection)
-    except (Fault, RequestException, ValueError) as ex:
+    except (VoipMsApiError, ValueError) as ex:
         _LOGGER.error("Connection error: %s", ex)
         raise CannotConnect from ex
 
-    # Check for failure in the result (e.g. status != 'success')
-    # VoIP.ms often returns a string 'success' or an array with a status
-    # However, getBalance might just return the balance directly or an array with status.
-    # We will assume if result contains 'status' and it's not 'success', it failed.
-    # Note: Depending on WSDL, it returns different shapes.
-
-    # We do a basic check here. If zeep didn't throw and we got a response,
-    # we inspect it. If it's a dict and status is present.
-    if (
-        isinstance(result, dict)
-        and result.get("status")
-        and result["status"] != "success"
-    ):
+    if result.get("status") != "success":
         raise InvalidAuth
 
-    # Return info that you want to store in the config entry.
     return {"title": data[CONF_USERNAME]}
 
 
