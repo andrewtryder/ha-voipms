@@ -16,11 +16,10 @@ Dependencies:
 
     pip install cairosvg pillow
 """
+
 from __future__ import annotations
 
 import io
-import re
-import sys
 import urllib.request
 from pathlib import Path
 from typing import Tuple
@@ -67,7 +66,9 @@ def trim_transparent_or_background(image: Image.Image) -> Image.Image:
     return image.crop(bbox) if bbox else image
 
 
-def make_square_asset(svg_bytes: bytes, size: int, padding_ratio: float = 0.12) -> Image.Image:
+def make_square_asset(
+    svg_bytes: bytes, size: int, padding_ratio: float = 0.12
+) -> Image.Image:
     rendered = trim_transparent_or_background(render_svg(svg_bytes, output_width=2048))
     available = int(size * (1 - 2 * padding_ratio))
     scale = min(available / rendered.width, available / rendered.height)
@@ -77,12 +78,16 @@ def make_square_asset(svg_bytes: bytes, size: int, padding_ratio: float = 0.12) 
     )
     resized = rendered.resize(new_size, Image.Resampling.LANCZOS)
     canvas = Image.new("RGBA", (size, size), (255, 255, 255, 0))
-    canvas.alpha_composite(resized, ((size - new_size[0]) // 2, (size - new_size[1]) // 2))
+    canvas.alpha_composite(
+        resized, ((size - new_size[0]) // 2, (size - new_size[1]) // 2)
+    )
     return canvas
 
 
 def make_readme_png(svg_bytes: bytes, width: int = 720) -> Image.Image:
-    rendered = trim_transparent_or_background(render_svg(svg_bytes, output_width=width * 2))
+    rendered = trim_transparent_or_background(
+        render_svg(svg_bytes, output_width=width * 2)
+    )
     height = max(1, round(rendered.height * (width / rendered.width)))
     return rendered.resize((width, height), Image.Resampling.LANCZOS)
 
