@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/andrewtryder/ha-voipms/compare/v1.0.0...v1.1.0) (2026-06-24)
+
+
+### Features
+
+* **docs:** update README for HACS integration ([fe732df](https://github.com/andrewtryder/ha-voipms/commit/fe732df7fb5ef6465439ba5207b9dcb79ab7128a))
+
 ## 1.0.0 (2026-06-24)
 
 
