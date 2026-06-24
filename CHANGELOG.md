@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.3](https://github.com/andrewtryder/ha-voipms/compare/v1.3.2...v1.3.3) (2026-06-24)
+
+
+### Bug Fixes
+
+* **sms:** add Activity logbook entries and fix CDR/balance polling ([bdf0c72](https://github.com/andrewtryder/ha-voipms/commit/bdf0c72052c2f062e03fc13f0d1d542282e994bb))
+* **sms:** add Activity logbook entries and fix CDR/balance polling ([9905cac](https://github.com/andrewtryder/ha-voipms/commit/9905cacec03757af7bed7cb41b2d0e8335db93b6))
+* **sms:** satisfy hassfest and stabilize logbook entity selection ([0639a97](https://github.com/andrewtryder/ha-voipms/commit/0639a9702470b4b034eddc7d1cc9950beabf6f1a))
+
 ## [1.3.2](https://github.com/andrewtryder/ha-voipms/compare/v1.3.1...v1.3.2) (2026-06-24)
 
 
