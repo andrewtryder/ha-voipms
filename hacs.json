@@ -1,3 +1,6 @@
 {
-  "name": "VoIP.ms Custom"
+  "name": "VoIP.ms Custom",
+  "content_in_root": false,
+  "render_readme": true,
+  "zip_release": false
 }
