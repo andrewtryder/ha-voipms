@@ -1,0 +1,9 @@
+{
+  "extra-files": [
+    {
+      "type": "json",
+      "path": "custom_components/voipms_custom/manifest.json",
+      "jsonpath": "$.version"
+    }
+  ]
+}
