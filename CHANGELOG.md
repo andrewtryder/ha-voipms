@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/andrewtryder/ha-voipms/compare/v1.3.3...v1.4.0) (2026-06-24)
+
+
+### Features
+
+* **notify:** add SMS card and dedicated send_sms service ([d1ecf95](https://github.com/andrewtryder/ha-voipms/commit/d1ecf95eebf758b008a10407868bbd09887c1f57))
+* **notify:** add SMS card and dedicated send_sms service ([6d69c7f](https://github.com/andrewtryder/ha-voipms/commit/6d69c7f626bb7ed713f808bde21e76f9d6ae9633))
+
+
+### Bug Fixes
+
+* **notify:** add services.yaml for hassfest validation ([f3760a1](https://github.com/andrewtryder/ha-voipms/commit/f3760a1c397319f9908b35aafb8525cef5e3e8d3))
+
 ## [1.3.3](https://github.com/andrewtryder/ha-voipms/compare/v1.3.2...v1.3.3) (2026-06-24)
 
 
