@@ -12,8 +12,12 @@
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect",
-      "invalid_auth": "Invalid authentication",
+      "cannot_connect": "Failed to connect to the VoIP.ms API. Check network connectivity and Home Assistant logs for details.",
+      "invalid_auth": "Invalid authentication. Check your API credentials and Home Assistant logs for the VoIP.ms response.",
+      "invalid_credentials": "Invalid API username or password. Use the credentials from Main Menu → SOAP and REST/JSON API in the VoIP.ms portal.",
+      "ip_not_enabled": "Your Home Assistant public IP is not allowlisted. Add it under API settings in the VoIP.ms portal.",
+      "api_not_enabled": "The VoIP.ms API is not enabled for your account. Enable it under Main Menu → SOAP and REST/JSON API.",
+      "missing_credentials": "API username or password was not provided to VoIP.ms. Re-enter your credentials and try again.",
       "unknown": "Unexpected error"
     },
     "abort": {
