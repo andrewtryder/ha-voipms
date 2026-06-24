@@ -13,8 +13,8 @@ _LOGGER = logging.getLogger(__name__)
 
 VOIPMS_REST_API_URL = "https://voip.ms/api/v1/rest.php"
 DEFAULT_TIMEOUT = 30
-API_USERNAME_PARAM = "api_" + "username"
-API_PASSWORD_PARAM = "api_" + "password"
+API_USERNAME_PARAM = "api_username"
+API_PASSWORD_PARAM = "api_password"
 
 
 class VoipMsApiError(Exception):
