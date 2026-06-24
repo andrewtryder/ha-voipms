@@ -48,7 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             hass.bus.async_fire(EVENT_INBOUND_SMS, dict(data))
 
-            return web.Response(text="OK")
+            return web.Response(text="ok")
         except Exception as err:
             _LOGGER.error("Error handling VoIP.ms webhook: %s", err)
             return web.Response(status=500)
