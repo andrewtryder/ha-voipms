@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.2](https://github.com/andrewtryder/ha-voipms/compare/v1.3.1...v1.3.2) (2026-06-24)
+
+
+### Bug Fixes
+
+* **release:** sync manifest version and rename integration to VoIP.MS ([6f5b920](https://github.com/andrewtryder/ha-voipms/commit/6f5b92063c70e8c6b212ff55c6100c934a1d9ea9))
+* **release:** sync manifest version and rename integration to VoIP.MS ([17f183c](https://github.com/andrewtryder/ha-voipms/commit/17f183ca9824243e214c7b199b7c58f8292b5866))
+
 ## [1.3.1](https://github.com/andrewtryder/ha-voipms/compare/v1.3.0...v1.3.1) (2026-06-24)
 
 
