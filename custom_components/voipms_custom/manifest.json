@@ -1,7 +1,7 @@
 {
   "domain": "voipms_custom",
   "name": "VoIP.ms Custom",
-  "codeowners": ["@andrewtryder", "@jules"],
+  "codeowners": ["@andrewtryder"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://voip.ms/m/apidocs.php",
