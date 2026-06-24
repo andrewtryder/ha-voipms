@@ -14,41 +14,39 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 
 @pytest.fixture
-def mock_zeep_client():
-    """Mock the zeep Client to prevent real API calls."""
+def mock_voipms_client():
+    """Mock the VoIP.ms REST client to prevent real API calls."""
     with (
         patch(
-            "custom_components.voipms_custom.config_flow.zeep.Client"
+            "custom_components.voipms_custom.config_flow.VoipMsRestClient"
         ) as mock_client_flow,
         patch(
-            "custom_components.voipms_custom.coordinator.zeep.Client"
+            "custom_components.voipms_custom.coordinator.VoipMsRestClient"
         ) as mock_client_coord,
         patch(
-            "custom_components.voipms_custom.notify.zeep.Client"
+            "custom_components.voipms_custom.notify.VoipMsRestClient"
         ) as mock_client_notify,
         patch(
-            "custom_components.voipms_custom.__init__.zeep.Client"
+            "custom_components.voipms_custom.__init__.VoipMsRestClient"
         ) as mock_client_init,
     ):
-        # Create a single mock instance that all these patched targets will return
         mock_instance = mock_client_flow.return_value
         mock_client_coord.return_value = mock_instance
         mock_client_notify.return_value = mock_instance
         mock_client_init.return_value = mock_instance
 
-        # Setup default successful responses
-        mock_instance.service.getBalance.return_value = {
+        mock_instance.get_balance.return_value = {
             "status": "success",
             "balance": 15.50,
         }
-        mock_instance.service.getCDR.return_value = {
+        mock_instance.get_cdr.return_value = {
             "status": "success",
             "cdr": [
                 {"date": "2024-01-01 12:00:00", "description": "Incoming call"},
                 {"date": "2024-01-01 13:00:00", "description": "Outbound call"},
             ],
         }
-        mock_instance.service.setSMS.return_value = {"status": "success"}
-        mock_instance.service.sendSMS.return_value = {"status": "success"}
+        mock_instance.set_sms.return_value = {"status": "success"}
+        mock_instance.send_sms.return_value = {"status": "success"}
 
         yield mock_instance
