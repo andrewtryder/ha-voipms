@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/andrewtryder/ha-voipms/compare/v1.3.0...v1.3.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* **webhook:** allow GET and register VoIP.ms SMS callback URL ([ddb5d7f](https://github.com/andrewtryder/ha-voipms/commit/ddb5d7fb783857f2702450ad44f23fe61e132df6))
+* **webhook:** allow GET and register VoIP.ms SMS callback URL ([2cb6088](https://github.com/andrewtryder/ha-voipms/commit/2cb6088fce4233b293dc351cb43f3639b2fbbca3))
+
 ## [1.3.0](https://github.com/andrewtryder/ha-voipms/compare/v1.2.0...v1.3.0) (2026-06-24)
 
 
