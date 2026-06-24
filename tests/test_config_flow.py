@@ -1,0 +1,84 @@
+"""Test the VoIP.ms Custom config flow."""
+from unittest.mock import patch
+
+from homeassistant import config_entries
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
+
+from custom_components.voipms_custom.const import DOMAIN, CONF_DEFAULT_DID
+
+async def test_form_success(hass: HomeAssistant, mock_zeep_client) -> None:
+    """Test we get the form and create an entry."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {}
+
+    # reset mock before configure so we count only the validation call
+    mock_zeep_client.service.getBalance.reset_mock()
+
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    await hass.async_block_till_done()
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["title"] == "test_user"
+    assert result2["data"] == {
+        CONF_USERNAME: "test_user",
+        CONF_PASSWORD: "test_password",
+        CONF_DEFAULT_DID: "5551234567",
+    }
+
+    mock_zeep_client.service.getBalance.assert_any_call(
+        api_username="test_user",
+        api_password="test_password"
+    )
+
+async def test_form_invalid_auth(hass: HomeAssistant, mock_zeep_client) -> None:
+    """Test we handle invalid auth."""
+    mock_zeep_client.service.getBalance.return_value = {"status": "invalid_credentials"}
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "invalid_auth"}
+
+async def test_form_cannot_connect(hass: HomeAssistant, mock_zeep_client) -> None:
+    """Test we handle cannot connect error."""
+    import zeep
+    mock_zeep_client.service.getBalance.side_effect = zeep.exceptions.Fault("Connection error")
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "cannot_connect"}
