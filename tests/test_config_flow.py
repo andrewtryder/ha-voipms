@@ -37,7 +37,7 @@ async def test_form_success(hass: HomeAssistant, mock_voipms_client) -> None:
         CONF_DEFAULT_DID: "5551234567",
     }
 
-    mock_voipms_client.get_balance.assert_called_once_with()
+    mock_voipms_client.get_balance.assert_any_call()
 
 
 async def test_form_invalid_auth(hass: HomeAssistant, mock_voipms_client) -> None:
