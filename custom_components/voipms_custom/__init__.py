@@ -147,4 +147,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     webhook_id = f"voipms_{entry.entry_id}"
     async_unregister(hass, webhook_id)
 
+    if hass.services.has_service(DOMAIN, "send_sms"):
+        hass.services.async_remove(DOMAIN, "send_sms")
+
     return unload_ok
