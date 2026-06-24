@@ -10,11 +10,11 @@ permissions:
 
 jobs:
   python-ci:
-    uses: andrewtryder/repo-standards/.github/workflows/python-ci.reusable.yml@v1.3.0
+    uses: andrewtryder/repo-standards/.github/workflows/python-ci.reusable.yml@v1.0.0
     with:
       python_version: "3.12"
       install_command: "python -m pip install -r requirements.txt -r requirements-dev.txt"
       format_check_command: "ruff format --check ."
       lint_command: "ruff check ."
-      test_command: "coverage run -m pytest"
+      test_command: "PYTHONPATH=. coverage run -m pytest"
       coverage_args: "--report-only"

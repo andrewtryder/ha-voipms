@@ -1,4 +1,5 @@
 """Config flow for VoIP.ms Custom integration."""
+
 from __future__ import annotations
 
 import logging
@@ -58,7 +59,11 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     # We do a basic check here. If zeep didn't throw and we got a response,
     # we inspect it. If it's a dict and status is present.
-    if isinstance(result, dict) and result.get("status") and result["status"] != "success":
+    if (
+        isinstance(result, dict)
+        and result.get("status")
+        and result["status"] != "success"
+    ):
         raise InvalidAuth
 
     # Return info that you want to store in the config entry.

@@ -1,9 +1,11 @@
 """Test VoIP.ms Custom setup and unload."""
+
 from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms_custom.const import DOMAIN, CONF_DEFAULT_DID
+
 
 async def test_setup_unload_entry(hass: HomeAssistant, mock_zeep_client) -> None:
     """Test setup and unload of the integration."""

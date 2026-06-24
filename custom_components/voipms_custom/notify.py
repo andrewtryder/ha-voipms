@@ -1,4 +1,5 @@
 """VoIP.ms Custom Notify Service."""
+
 from __future__ import annotations
 
 import logging
@@ -6,7 +7,6 @@ import os
 from typing import Any
 
 import zeep
-from zeep.exceptions import Fault
 
 from homeassistant.components.notify import BaseNotificationService
 from homeassistant.core import HomeAssistant
@@ -14,7 +14,7 @@ from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.config_entries import ConfigEntry
 
-from .const import DOMAIN, CONF_DEFAULT_DID
+from .const import CONF_DEFAULT_DID
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +28,7 @@ async def async_setup_entry(
     # Notify currently has both legacy async_get_service and entity-based async_setup_entry depending on how it's used.
     # We will just pass since we registered it as a platform but using legacy get_service.
     pass
+
 
 async def async_get_service(
     hass: HomeAssistant,
@@ -49,7 +50,9 @@ async def async_get_service(
 class VoipmsNotificationService(BaseNotificationService):
     """Implement the notification service for VoIP.ms."""
 
-    def __init__(self, hass: HomeAssistant, username: str, password: str, default_did: str) -> None:
+    def __init__(
+        self, hass: HomeAssistant, username: str, password: str, default_did: str
+    ) -> None:
         """Initialize the service."""
         self.hass = hass
         self.username = username
@@ -85,6 +88,6 @@ class VoipmsNotificationService(BaseNotificationService):
 
                 # Check status
                 if isinstance(result, dict) and result.get("status") != "success":
-                     _LOGGER.error("VoIP.ms sendSMS failed: %s", result.get("status"))
+                    _LOGGER.error("VoIP.ms sendSMS failed: %s", result.get("status"))
             except Exception as ex:
                 _LOGGER.error("Failed to send VoIP.ms SMS to %s: %s", target, ex)

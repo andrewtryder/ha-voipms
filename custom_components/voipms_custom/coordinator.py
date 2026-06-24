@@ -1,4 +1,5 @@
 """Data update coordinator for VoIP.ms Custom integration."""
+
 import logging
 import os
 from datetime import datetime, timedelta
@@ -94,7 +95,7 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                 cdrs = cdr_result.get("cdr", [])
                 # Handle single object vs list in zeep return
                 if isinstance(cdrs, dict):
-                     cdrs = [cdrs]
+                    cdrs = [cdrs]
 
                 inbound_count = 0
                 outbound_count = 0
@@ -106,7 +107,9 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                     # Parse date: typically 'YYYY-MM-DD HH:MM:SS'
                     try:
                         call_date_str = call.get("date", "")
-                        call_date = datetime.strptime(call_date_str, "%Y-%m-%d %H:%M:%S")
+                        call_date = datetime.strptime(
+                            call_date_str, "%Y-%m-%d %H:%M:%S"
+                        )
 
                         if call_date >= threshold_time:
                             # Depending on VoIP.ms, 'account' or 'destination' might indicate direction.
@@ -125,17 +128,17 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                                 # Default to outbound if not explicitly incoming
                                 outbound_count += 1
                     except ValueError:
-                        pass # Skip invalid dates
+                        pass  # Skip invalid dates
 
                 data["inbound_calls_24h"] = inbound_count
                 data["outbound_calls_24h"] = outbound_count
 
             else:
-                 # It might return "no_cdr" or similar
-                 _LOGGER.debug("No CDRs found or failed: %s", cdr_result)
+                # It might return "no_cdr" or similar
+                _LOGGER.debug("No CDRs found or failed: %s", cdr_result)
 
         except (Fault, RequestException, ValueError) as ex:
-             # We might not want to fail the whole update if CDR fails
-             _LOGGER.error("Error fetching CDR: %s", ex)
+            # We might not want to fail the whole update if CDR fails
+            _LOGGER.error("Error fetching CDR: %s", ex)
 
         return data

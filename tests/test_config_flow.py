@@ -1,5 +1,4 @@
 """Test the VoIP.ms Custom config flow."""
-from unittest.mock import patch
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
@@ -7,6 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.voipms_custom.const import DOMAIN, CONF_DEFAULT_DID
+
 
 async def test_form_success(hass: HomeAssistant, mock_zeep_client) -> None:
     """Test we get the form and create an entry."""
@@ -38,9 +38,9 @@ async def test_form_success(hass: HomeAssistant, mock_zeep_client) -> None:
     }
 
     mock_zeep_client.service.getBalance.assert_any_call(
-        api_username="test_user",
-        api_password="test_password"
+        api_username="test_user", api_password="test_password"
     )
+
 
 async def test_form_invalid_auth(hass: HomeAssistant, mock_zeep_client) -> None:
     """Test we handle invalid auth."""
@@ -62,10 +62,14 @@ async def test_form_invalid_auth(hass: HomeAssistant, mock_zeep_client) -> None:
     assert result2["type"] == FlowResultType.FORM
     assert result2["errors"] == {"base": "invalid_auth"}
 
+
 async def test_form_cannot_connect(hass: HomeAssistant, mock_zeep_client) -> None:
     """Test we handle cannot connect error."""
     import zeep
-    mock_zeep_client.service.getBalance.side_effect = zeep.exceptions.Fault("Connection error")
+
+    mock_zeep_client.service.getBalance.side_effect = zeep.exceptions.Fault(
+        "Connection error"
+    )
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}

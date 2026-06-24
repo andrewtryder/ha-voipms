@@ -1,4 +1,5 @@
 """The VoIP.ms Custom integration."""
+
 from __future__ import annotations
 
 import logging
@@ -35,12 +36,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Setup webhook
     webhook_id = f"voipms_{entry.entry_id}"
 
-    async def handle_webhook(hass: HomeAssistant, webhook_id: str, request: web.Request):
+    async def handle_webhook(
+        hass: HomeAssistant, webhook_id: str, request: web.Request
+    ):
         """Handle incoming webhook from VoIP.ms."""
         try:
-            data = await request.post() # or request.query if it's a GET, VoIP.ms can send GET or POST.
+            # Support both POST (form data) and GET (query parameters)
+            if request.method == "POST":
+                data = await request.post()
+            else:
+                data = request.query
             if not data:
-                data = await request.query
+                data = {}
 
             # Fire an event
             hass.bus.async_fire(EVENT_INBOUND_SMS, dict(data))
@@ -65,9 +72,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Determine DID to set SMS callback
         from .const import CONF_DEFAULT_DID
+
         did = entry.data.get(CONF_DEFAULT_DID)
 
         if did:
+
             def register_webhook():
                 wsdl_path = os.path.join(os.path.dirname(__file__), "server.wsdl")
                 client = zeep.Client(wsdl=wsdl_path)
@@ -76,14 +85,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     api_password=entry.data[CONF_PASSWORD],
                     did=did,
                     enable=1,
-                    url_callback=webhook_url
+                    url_callback=webhook_url,
                 )
                 return result
 
             result = await hass.async_add_executor_job(register_webhook)
             _LOGGER.info("Registered VoIP.ms webhook %s: %s", webhook_url, result)
     except Exception as ex:
-        _LOGGER.warning("Failed to register webhook with VoIP.ms. You may need to configure it manually. Error: %s", ex)
+        _LOGGER.warning(
+            "Failed to register webhook with VoIP.ms. You may need to configure it manually. Error: %s",
+            ex,
+        )
 
     return True
 
