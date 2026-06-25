@@ -129,19 +129,27 @@ class VoipmsOutboundCallsSensor(VoipmsBaseSensor):
         return None
 
 
-class VoipmsLastSmsSensor(VoipmsBaseSensor):
+class VoipmsLastSmsSensor(SensorEntity):
     """Representation of the last received SMS for VoIP.ms."""
 
     _attr_has_entity_name = True
     _attr_name = "Last SMS"
-    _attr_unique_id = None
 
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the last SMS sensor."""
-        super().__init__(None, entry)
+        self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_last_sms"
         self._state = None
-        self._attributes = {}
+        self._attributes: dict[str, Any] = {}
+
+    @property
+    def device_info(self):
+        """Return device information about this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "VoIP.MS",
+            "manufacturer": "VoIP.MS",
+        }
 
     def set_state_from_sms(self, sms: Any) -> None:
         """Set sensor state and attributes from an InboundSms model."""
@@ -152,6 +160,7 @@ class VoipmsLastSmsSensor(VoipmsBaseSensor):
             "timestamp": sms.timestamp,
             "message_id": sms.message_id,
         }
+        self.async_write_ha_state()
 
     @property
     def native_value(self):

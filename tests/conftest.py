@@ -38,11 +38,18 @@ def mock_voipms_client():
         "custom_components.voipms.config_flow.VoipMsRestClient",
         "custom_components.voipms.coordinator.VoipMsRestClient",
         "custom_components.voipms.notify.VoipMsRestClient",
+        "custom_components.voipms.webhook.VoipMsRestClient",
         "custom_components.voipms.api.VoipMsRestClient",
     )
     mock_class = MagicMock(return_value=mock_instance)
 
     with ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "homeassistant.helpers.network.get_url",
+                return_value="http://example.com",
+            )
+        )
         stack.enter_context(
             patch(
                 "custom_components.voipms.get_url",

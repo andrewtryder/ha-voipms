@@ -3,6 +3,7 @@
 from unittest.mock import patch
 from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, EVENT_LOGBOOK_ENTRY
+from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -13,6 +14,17 @@ from custom_components.voipms.const import (
 )
 from custom_components.voipms.models import InboundSms
 from custom_components.voipms.processor import process_inbound_sms
+
+
+def _get_last_sms_entity_id(hass: HomeAssistant, entry: MockConfigEntry) -> str:
+    """Return the entity ID for the last SMS sensor."""
+    entity_registry = er.async_get(hass)
+    for registry_entry in er.async_entries_for_config_entry(
+        entity_registry, entry.entry_id
+    ):
+        if registry_entry.unique_id == f"{entry.entry_id}_last_sms":
+            return registry_entry.entity_id
+    raise AssertionError("Last SMS sensor entity not found")
 
 
 async def test_process_inbound_sms_creates_event_logbook_and_notification(
@@ -111,8 +123,9 @@ async def test_process_inbound_sms_updates_last_sms_sensor(
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    # Verify sensor does NOT exist before processing
-    assert hass.states.get(f"sensor.{entry.entry_id}_last_sms") is None
+    # Verify sensor exists but has no SMS data before processing
+    sensor_entity_id = _get_last_sms_entity_id(hass, entry)
+    assert hass.states.get(sensor_entity_id).state == "unknown"
 
     # Create a valid InboundSms instance
     sms = InboundSms(
@@ -128,7 +141,7 @@ async def test_process_inbound_sms_updates_last_sms_sensor(
     await hass.async_block_till_done()
 
     # Verify sensor state was set
-    sensor_state = hass.states.get(f"sensor.{entry.entry_id}_last_sms")
+    sensor_state = hass.states.get(sensor_entity_id)
     assert sensor_state is not None
     assert sensor_state.state == "5559876543"
     assert sensor_state.attributes["message"] == "Hello, world!"
@@ -183,6 +196,6 @@ async def test_process_inbound_sms_long_message_truncation(
     assert "..." in captured_logbook[0]["message"]
 
     # Verify the sensor state was set with full message
-    sensor_state = hass.states.get(f"sensor.{entry.entry_id}_last_sms")
+    sensor_state = hass.states.get(_get_last_sms_entity_id(hass, entry))
     assert sensor_state is not None
     assert sensor_state.attributes["message"] == long_message

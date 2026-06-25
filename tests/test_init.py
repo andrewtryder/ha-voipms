@@ -11,9 +11,10 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.voipms.const import (
     CONF_DEFAULT_DID,
     DOMAIN,
-    EVENT_INBOUND_SMS,
     build_webhook_callback_url,
 )
+from custom_components.voipms.models import InboundSms
+from custom_components.voipms.processor import process_inbound_sms
 
 
 async def test_setup_unload_entry(hass: HomeAssistant, mock_voipms_client) -> None:
@@ -66,16 +67,14 @@ async def test_inbound_sms_event_creates_persistent_notification(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    hass.bus.async_fire(
-        EVENT_INBOUND_SMS,
-        {
-            "to": "5551234567",
-            "from": "5559876543",
-            "message": "hello",
-            "id": "42",
-            "date": "2024-01-01",
-        },
+    sms = InboundSms(
+        sender="5559876543",
+        recipient="5551234567",
+        message="hello",
+        message_id="42",
+        timestamp="2024-01-01",
     )
+    await process_inbound_sms(hass, entry, sms)
     await hass.async_block_till_done()
 
     notifications = _async_get_or_create_notifications(hass)
