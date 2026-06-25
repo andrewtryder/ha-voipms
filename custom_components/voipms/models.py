@@ -5,11 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-from homeassistant.const import CONF_MESSAGE, CONF_SENDER, CONF_RECIPIENT, CONF_ID, CONF_TIMESTAMP
+from homeassistant.const import (
+    CONF_MESSAGE,
+    CONF_SENDER,
+    CONF_RECIPIENT,
+    CONF_ID,
+    CONF_TIMESTAMP,
+)
 
 
 class InboundSmsValidationError(ValueError):
     """Raised when inbound SMS payload validation fails."""
+
     pass
 
 
@@ -17,11 +24,11 @@ class InboundSmsValidationError(ValueError):
 class InboundSms:
     """Represents an inbound SMS message from VoIP.ms."""
 
-    sender: str          # VoIP.ms "from" field
-    recipient: str       # VoIP.ms "to" field
+    sender: str  # VoIP.ms "from" field
+    recipient: str  # VoIP.ms "to" field
     message: str
-    message_id: str      # VoIP.ms "id" field
-    timestamp: str        # VoIP.ms "date" field
+    message_id: str  # VoIP.ms "id" field
+    timestamp: str  # VoIP.ms "date" field
 
     # Constants for field names used in webhook payloads
     FIELD_FROM = "from"

@@ -60,6 +60,7 @@ async def test_process_inbound_sms_creates_event_logbook_and_notification(
     from homeassistant.components.persistent_notification import (
         _async_get_or_create_notifications,
     )
+
     notifications = _async_get_or_create_notifications(hass)
 
     # Mock the notification component to capture async_create calls

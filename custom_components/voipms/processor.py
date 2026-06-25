@@ -40,9 +40,7 @@ def _log_inbound_sms_to_logbook(
 
     logbook_data = {
         "name": LOGBOOK_NAME,
-        "message": (
-            f"SMS from {sms.sender} to {sms.recipient}: {message_text}"
-        ),
+        "message": (f"SMS from {sms.sender} to {sms.recipient}: {message_text}"),
         "domain": "voipms",
     }
     if entity_id is not None:
@@ -51,9 +49,7 @@ def _log_inbound_sms_to_logbook(
     hass.bus.async_fire(EVENT_LOGBOOK_ENTRY, logbook_data)
 
 
-def _create_inbound_sms_notification(
-    hass: HomeAssistant, sms: InboundSms
-) -> None:
+def _create_inbound_sms_notification(hass: HomeAssistant, sms: InboundSms) -> None:
     """Create a persistent notification for an inbound SMS."""
     notification_id = f"voipms_sms_{sms.message_id}" if sms.message_id else None
 
@@ -117,6 +113,7 @@ async def process_inbound_sms(
 
     # Fire event for automations
     from homeassistant.const import EVENT_INBOUND_SMS
+
     hass.bus.async_fire(EVENT_INBOUND_SMS, sms.to_event_data())
 
     # Write to logbook

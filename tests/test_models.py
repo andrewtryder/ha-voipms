@@ -10,7 +10,9 @@ from custom_components.voipms.models import (
 )
 
 
-async def test_inbound_sms_valid_payload(hass: HomeAssistant, mock_voipms_client) -> None:
+async def test_inbound_sms_valid_payload(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
     """Test valid inbound SMS payload parses correctly."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -50,7 +52,9 @@ async def test_inbound_sms_valid_payload(hass: HomeAssistant, mock_voipms_client
     assert event_data["date"] == "2024-01-01"
 
 
-async def test_inbound_sms_missing_from(hass: HomeAssistant, mock_voipms_client) -> None:
+async def test_inbound_sms_missing_from(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
     """Test missing 'from' field raises validation error."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -108,7 +112,9 @@ async def test_inbound_sms_missing_to(hass: HomeAssistant, mock_voipms_client) -
         assert "to" in str(e)
 
 
-async def test_inbound_sms_missing_message(hass: HomeAssistant, mock_voipms_client) -> None:
+async def test_inbound_sms_missing_message(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
     """Test missing 'message' field raises validation error."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -166,7 +172,9 @@ async def test_inbound_sms_missing_id(hass: HomeAssistant, mock_voipms_client) -
         assert "id" in str(e)
 
 
-async def test_inbound_sms_missing_date(hass: HomeAssistant, mock_voipms_client) -> None:
+async def test_inbound_sms_missing_date(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
     """Test missing 'date' field raises validation error."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -195,7 +203,9 @@ async def test_inbound_sms_missing_date(hass: HomeAssistant, mock_voipms_client)
         assert "date" in str(e)
 
 
-async def test_inbound_sms_empty_message(hass: HomeAssistant, mock_voipms_client) -> None:
+async def test_inbound_sms_empty_message(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
     """Test empty 'message' field raises validation error."""
     entry = MockConfigEntry(
         domain=DOMAIN,
