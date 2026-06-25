@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
 
-from .api import VoipMsRestClient
-from .coordinator import VoipmsDataUpdateCoordinator
+from .api import VoipMsRestClient as VoipMsRestClient
+from .coordinator import VoipmsDataUpdateCoordinator as VoipmsDataUpdateCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.NOTIFY]
 
