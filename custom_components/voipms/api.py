@@ -102,3 +102,7 @@ class VoipMsRestClient:
             url_callback_enable=1,
             url_callback=url_callback,
         )
+
+    def get_voicemails(self) -> dict[str, Any]:
+        """Fetch voicemail messages."""
+        return self.call("getVoicemails")
