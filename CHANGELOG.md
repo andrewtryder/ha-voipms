@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.5.0](https://github.com/andrewtryder/ha-voipms/compare/v1.4.0...v1.5.0) (2026-06-25)
+
+
+### Features
+
+* **format:** apply ruff formatting to all files ([0cd415c](https://github.com/andrewtryder/ha-voipms/commit/0cd415cfc197f51fcaac215af89cf1e8de8edfb0))
+* **format:** apply ruff formatting to all files ([8e5d928](https://github.com/andrewtryder/ha-voipms/commit/8e5d9287743c8425ac2fe2655c772c1ad2aa6475))
+
+
+### Bug Fixes
+
+* **__init__:** re-expose VoipMsRestClient and add get_url function ([e9a8a3f](https://github.com/andrewtryder/ha-voipms/commit/e9a8a3ff8ed0f489a4ce1d3848e97cc394a7fa71))
+* **__init__:** remove unused imports and explicitly re-export client and coordinator (ruff F401) ([e53eb20](https://github.com/andrewtryder/ha-voipms/commit/e53eb201d321c34ed87c99aeaf6ab8ffaf728825))
+* **integration:** restore setup entry and resolve CI failures ([02b9973](https://github.com/andrewtryder/ha-voipms/commit/02b997305dd2d7281696babc7f04aa51c2cc656e))
+* resolve ruff linting issues ([de3fd7e](https://github.com/andrewtryder/ha-voipms/commit/de3fd7e1734483ce54e82f227ffc0e5b471462df))
+* **test_processor:** fix unused variable 'notifications' (ruff F841) ([390a7ba](https://github.com/andrewtryder/ha-voipms/commit/390a7baf784c76b688ffcbc5590959815f1258bf))
+* **tests:** remove unused variable assignment 'notifications' (ruff F841) ([cdd950e](https://github.com/andrewtryder/ha-voipms/commit/cdd950ee24f421b923298ada7be126a6b07bdbf7))
+
 ## [1.4.0](https://github.com/andrewtryder/ha-voipms/compare/v1.3.3...v1.4.0) (2026-06-24)
 
 
