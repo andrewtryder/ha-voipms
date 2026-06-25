@@ -233,3 +233,76 @@ async def test_inbound_sms_empty_message(
         assert False, "Expected InboundSmsValidationError"
     except InboundSmsValidationError as e:
         assert "message" in str(e)
+
+
+def test_call_record_parses_inbound_cdr() -> None:
+    """Test inbound CDR record parsing."""
+    from custom_components.voipms.const import DIRECTION_INBOUND
+    from custom_components.voipms.models import CallRecord
+
+    record = {
+        "uniqueid": "call-123",
+        "callerid": "5559876543",
+        "destination": "5551234567",
+        "description": "Incoming call",
+        "date": "2024-01-01 12:00:00",
+        "duration": "45",
+        "disposition": "ANSWERED",
+    }
+
+    call = CallRecord.parse_cdr_record(record)
+    assert call is not None
+    assert call.unique_id == "call-123"
+    assert call.caller_id == "5559876543"
+    assert call.destination == "5551234567"
+    assert call.direction == DIRECTION_INBOUND
+    assert call.to_event_data()["direction"] == DIRECTION_INBOUND
+
+
+def test_call_record_parses_outbound_cdr_without_uniqueid() -> None:
+    """Test outbound CDR record parsing falls back to composite unique ID."""
+    from custom_components.voipms.const import DIRECTION_OUTBOUND
+    from custom_components.voipms.models import CallRecord
+
+    record = {
+        "callerid": "5551234567",
+        "destination": "5559876543",
+        "description": "Outbound call",
+        "date": "2024-01-01 13:00:00",
+        "duration": "30",
+        "disposition": "ANSWERED",
+    }
+
+    call = CallRecord.parse_cdr_record(record)
+    assert call is not None
+    assert call.direction == DIRECTION_OUTBOUND
+    assert call.unique_id == ("2024-01-01 13:00:00|5551234567|5559876543|Outbound call")
+
+
+def test_call_record_returns_none_without_date() -> None:
+    """Test invalid CDR records are ignored."""
+    from custom_components.voipms.models import CallRecord
+
+    assert CallRecord.parse_cdr_record({"description": "Incoming call"}) is None
+
+
+def test_call_record_detects_voicemail_from_description() -> None:
+    """Test voicemail calls are detected from CDR description."""
+    from custom_components.voipms.const import DIRECTION_INBOUND
+    from custom_components.voipms.models import CallRecord
+
+    record = {
+        "uniqueid": "vm-1",
+        "callerid": "5559876543",
+        "destination": "5551234567",
+        "description": "Failover to Voicemail {Voicemail}",
+        "date": "2024-01-01 12:00:00",
+        "duration": "12",
+        "disposition": "ANSWERED",
+    }
+
+    call = CallRecord.parse_cdr_record(record)
+    assert call is not None
+    assert call.is_voicemail() is True
+    assert call.direction == DIRECTION_INBOUND
+    assert call.to_event_data()["is_voicemail"] == "true"

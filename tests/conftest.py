@@ -32,6 +32,10 @@ def mock_voipms_client():
     }
     mock_instance.set_sms.return_value = {"status": "success"}
     mock_instance.send_sms.return_value = {"status": "success"}
+    mock_instance.get_voicemails.return_value = {
+        "status": "success",
+        "voicemails": [],
+    }
 
     patch_targets = (
         "custom_components.voipms.VoipMsRestClient",

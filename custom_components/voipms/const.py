@@ -13,6 +13,11 @@ UPDATE_INTERVAL = timedelta(minutes=5)
 
 # Events
 EVENT_INBOUND_SMS = "voipms_inbound_sms"
+EVENT_INBOUND_CALL = "voipms_inbound_call"
+EVENT_OUTBOUND_CALL = "voipms_outbound_call"
+
+DIRECTION_INBOUND = "inbound"
+DIRECTION_OUTBOUND = "outbound"
 
 WEBHOOK_CALLBACK_QUERY = (
     "to={TO}&from={FROM}&message={MESSAGE}&id={ID}&date={TIMESTAMP}"

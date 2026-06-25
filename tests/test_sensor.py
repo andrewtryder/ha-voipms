@@ -27,6 +27,10 @@ async def test_sensors(hass: HomeAssistant, mock_voipms_client) -> None:
             {"date": valid_time_str, "description": "Inbound call"},
         ],
     }
+    mock_voipms_client.get_voicemails.return_value = {
+        "status": "success",
+        "voicemails": [{"id": "1"}, {"id": "2"}, {"id": "3"}],
+    }
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -52,3 +56,7 @@ async def test_sensors(hass: HomeAssistant, mock_voipms_client) -> None:
     outbound_state = hass.states.get("sensor.voip_ms_outbound_calls_24h")
     assert outbound_state is not None
     assert outbound_state.state == "1"
+
+    voicemail_state = hass.states.get("sensor.voip_ms_voicemails")
+    assert voicemail_state is not None
+    assert voicemail_state.state == "3"
