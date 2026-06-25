@@ -5,11 +5,9 @@ services:
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
       - ./config:/config
-      - ./custom_components/voipms_custom:/config/custom_components/voipms_custom
+      - ./custom_components/voipms:/config/custom_components/voipms
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
-    privileged: true
-    network_mode: host
     ports:
       - "8123:8123"
     environment:

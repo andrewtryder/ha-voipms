@@ -44,7 +44,7 @@ async def async_setup_entry(
 
     @callback
     def async_send_sms_service(call: ServiceCall) -> None:
-        """Handle the voipms_custom.send_sms service call."""
+        """Handle the voipms.send_sms service call."""
         to = call.data[ATTR_TO]
         message = call.data[ATTR_MESSAGE]
         did = call.data.get(ATTR_DID, entity.default_did)
@@ -89,7 +89,7 @@ class VoipmsNotifyEntity(NotifyEntity):
 
         The standard notify.send_message service has no target field, so this
         is a convenience for automations that already know the recipient. Use
-        the voipms_custom.send_sms service to specify a recipient.
+        the voipms.send_sms service to specify a recipient.
         """
         _LOGGER.warning(
             "notify.send_message has no recipient; call the %s.%s service with"

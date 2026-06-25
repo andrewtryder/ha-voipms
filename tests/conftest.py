@@ -1,4 +1,4 @@
-"""Global fixtures for VoIP.ms Custom integration tests."""
+"""Global fixtures for VoIP.ms integration tests."""
 
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
@@ -34,18 +34,18 @@ def mock_voipms_client():
     mock_instance.send_sms.return_value = {"status": "success"}
 
     patch_targets = (
-        "custom_components.voipms_custom.VoipMsRestClient",
-        "custom_components.voipms_custom.config_flow.VoipMsRestClient",
-        "custom_components.voipms_custom.coordinator.VoipMsRestClient",
-        "custom_components.voipms_custom.notify.VoipMsRestClient",
-        "custom_components.voipms_custom.api.VoipMsRestClient",
+        "custom_components.voipms.VoipMsRestClient",
+        "custom_components.voipms.config_flow.VoipMsRestClient",
+        "custom_components.voipms.coordinator.VoipMsRestClient",
+        "custom_components.voipms.notify.VoipMsRestClient",
+        "custom_components.voipms.api.VoipMsRestClient",
     )
     mock_class = MagicMock(return_value=mock_instance)
 
     with ExitStack() as stack:
         stack.enter_context(
             patch(
-                "custom_components.voipms_custom.get_url",
+                "custom_components.voipms.get_url",
                 return_value="http://example.com",
             )
         )

@@ -20,7 +20,7 @@ VoIP.MS is a Home Assistant integration that provides access to the VoIP.ms tele
 
 Add the integration directory to your Home Assistant configuration:
 ```bash
-cp -r custom_components/voipms_custom /config/custom_components/
+cp -r custom_components/voipms /config/custom_components/
 ```
 
 Restart Home Assistant after installation.
@@ -58,11 +58,81 @@ automation:
           message: "Your VoIP.ms balance is running low: {{ states('sensor.voip_ms_account_balance') }}"
 ```
 
-Inbound SMS messages fire a `voipms_inbound_sms` event on the Home Assistant event bus and appear in **Activity** (logbook). Listen for that event in **Developer Tools → Events** or use it as an automation trigger.
+## Incoming SMS
+
+### End‑to‑end flow
+1. A text message arrives at your VoIP.ms DID.
+2. VoIP.ms delivers an HTTP GET request (or POST if configured) to the webhook registered in Home Assistant.
+3. The webhook validates the payload (requires `from`, `to`, `message`, `id`, `date`).
+4. The validated message is processed:
+   - A `voipms_inbound_sms` event is fired for automations
+   - A logbook entry appears in **Activity**
+   - A persistent notification appears in the **Notifications** panel
+   - The `sensor.voip_ms_last_sms` sensor is updated with the latest message details
+
+### Webhook and VoIP.ms setup
+- The integration automatically registers a VoIP.ms callback URL when you reload the integration.
+- The callback URL template is: `{base_url}/api/webhook/{webhook_id}?to={TO}&from={FROM}&message={MESSAGE}&id={ID}&date={TIMESTAMP}`
+- Use this URL in the **SMS / MMS → Callback URL** field in your VoIP.ms control panel.
+
+### Example webhook payload
+```
+to=5551234567
+from=5559876543
+message=Hello from VoIP.ms!
+id=abc123
+date=2024-01-01 12:34:56
+```
+
+### MQTT/event‑driven automations
+Trigger automations when a new SMS arrives:
+
+```yaml
+automation:
+  - alias: Notify on new SMS
+    trigger:
+      - platform: event
+        event_type: voipms_inbound_sms
+    action:
+      - service: notify.mobile_app_phone
+        data:
+          message: "New SMS from {{ trigger.event.data.from }}: {{ trigger.event.data.message }}"
+```
+
+### Mobile app notifications
+Your phone will receive a Home Assistant notification with:
+- **Title**: `SMS from {from}`
+- **Message**: The full SMS text
+- **Notification ID**: `voipms_sms_{id}` (prevents duplicates)
+
+### Sensor reference
+Use `sensor.voip_ms_last_sms` to see the most recent inbound SMS:
+
+| Attribute | Description |
+|-----------|-------------|
+| `state` | Sender phone number (`from`) |
+| `message` | Full SMS text (`message`) |
+| `recipient` | Destination DID (`to`) |
+| `timestamp` | When the SMS arrived (`date`) |
+| `message_id` | Unique VoIP.ms message ID (`id`) |
+
+Example dashboard card:
+```yaml
+type: entities
+entities:
+  - sensor.voip_ms_last_sms
+  - sensor.voip_ms_account_balance
+```
+
+### Invalid payloads
+If the webhook receives a malformed or incomplete payload (missing required fields), it logs a warning but returns HTTP 200 OK to prevent VoIP.ms from retrying. No event, notification, or sensor update occurs in this case.
+
+### Troubleshooting
+Refer to the **Troubleshooting** section for webhook registration, credentials, and external URL setup instructions.
 
 ## Services
 
-### `voipms_custom.send_sms`
+### `voipms.send_sms`
 
 Send an SMS through VoIP.MS. Exposed as a service so automations, scripts, and the Lovelace card can send messages.
 
@@ -73,18 +143,18 @@ Send an SMS through VoIP.MS. Exposed as a service so automations, scripts, and t
 | `did` | no | Sender DID. Defaults to the configured Default DID |
 
 ```yaml
-service: voipms_custom.send_sms
+service: voipms.send_sms
 data:
   to: "5559876543"
   message: "Hello from Home Assistant"
   did: "5551234567"  # optional
 ```
 
-A `notify.voip_ms_sms` entity is also created for standard notify integrations; use `voipms_custom.send_sms` when you need to specify the recipient directly.
+A `notify.voip_ms_sms` entity is also created for standard notify integrations; use `voipms.send_sms` when you need to specify the recipient directly.
 
 ## Lovelace card (optional)
 
-A compact "Send SMS" card is bundled in this repo at [`frontend/dist/voipms-sms-card.js`](frontend/dist/voipms-sms-card.js). It provides From DID, To, and Message fields and a Send button that calls `voipms_custom.send_sms`.
+A compact "Send SMS" card is bundled in this repo at [`frontend/dist/voipms-sms-card.js`](frontend/dist/voipms-sms-card.js). It provides From DID, To, and Message fields and a Send button that calls `voipms.send_sms`.
 
 ### Install as a Lovelace resource
 
@@ -124,7 +194,7 @@ Add this to `configuration.yaml`, or use **Settings → System → Logs → Conf
 logger:
   default: warning
   logs:
-    custom_components.voipms_custom: debug
+    custom_components.voipms: debug
 ```
 
 Restart Home Assistant, retry adding the integration, then check **Settings → System → Logs** (or `home-assistant.log`):
@@ -217,7 +287,7 @@ Inbound SMS delivery logs at `INFO` level and may be hidden by default filters. 
 logger:
   default: warning
   logs:
-    custom_components.voipms_custom: debug
+    custom_components.voipms: debug
     homeassistant.components.webhook: debug
 ```
 
@@ -228,7 +298,7 @@ Restart Home Assistant, send a test SMS, then check logs for:
 | `Received VoIP.ms SMS from ...` | Webhook delivered successfully; check **Activity** and **Developer Tools → Events** for `voipms_inbound_sms` |
 | `Webhook ... only supports ... methods but GET was received` | Old integration version — update to v1.3.1+ and reload |
 | `Received remote request for local webhook` | External URL not reachable; fix network or Nabu Casa setup |
-| No `voipms_custom` or `webhook` entries | VoIP.ms may not be reaching your HA instance |
+| No `voipms` or `webhook` entries | VoIP.ms may not be reaching your HA instance |
 
 #### 5. Verify external URL reachability
 

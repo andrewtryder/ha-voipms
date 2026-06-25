@@ -1,4 +1,4 @@
-"""Config flow for VoIP.ms Custom integration."""
+"""Config flow for VoIP.ms integration."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for VoIP.ms Custom."""
+    """Handle a config flow for VoIP.ms."""
 
     VERSION = 1
 

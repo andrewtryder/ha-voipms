@@ -110,7 +110,7 @@ let VoipmsSmsCard = class VoipmsSmsCard extends i {
         if (this._did.trim())
             data.did = this._did.trim();
         try {
-            await this.hass.callService("voipms_custom", "send_sms", data);
+            await this.hass.callService("voipms", "send_sms", data);
             this._sendState = "success";
             this._message = "";
         }

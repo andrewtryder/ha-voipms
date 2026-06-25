@@ -1,4 +1,4 @@
-"""Data update coordinator for VoIP.ms Custom integration."""
+"""Data update coordinator for VoIP.ms integration."""
 
 import logging
 from datetime import datetime, timedelta

@@ -6,8 +6,8 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.voipms_custom.api import VoipMsApiError
-from custom_components.voipms_custom.const import CONF_DEFAULT_DID, DOMAIN
+from custom_components.voipms.api import VoipMsApiError
+from custom_components.voipms.const import CONF_DEFAULT_DID, DOMAIN
 
 
 async def test_coordinator_continues_when_balance_fetch_fails(

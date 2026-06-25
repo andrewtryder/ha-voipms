@@ -1,4 +1,4 @@
-"""Sensor platform for VoIP.ms Custom integration."""
+"""Sensor platform for VoIP.ms integration."""
 
 from __future__ import annotations
 
@@ -26,12 +26,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the VoIP.ms sensor platform."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = hass.data["voipms"][entry.entry_id]
 
     sensors = [
         VoipmsBalanceSensor(coordinator, entry),
         VoipmsInboundCallsSensor(coordinator, entry),
         VoipmsOutboundCallsSensor(coordinator, entry),
+        VoipmsLastSmsSensor(entry),
     ]
 
     async_add_entities(sensors, True)
@@ -125,3 +126,38 @@ class VoipmsOutboundCallsSensor(VoipmsBaseSensor):
         if self.coordinator.data:
             return self.coordinator.data.get("outbound_calls_24h")
         return None
+
+
+class VoipmsLastSmsSensor(VoipmsBaseSensor):
+    """Representation of the last received SMS for VoIP.ms."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Last SMS"
+    _attr_unique_id = None
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        """Initialize the last SMS sensor."""
+        super().__init__(None, entry)
+        self._attr_unique_id = f"{entry.entry_id}_last_sms"
+        self._state = None
+        self._attributes = {}
+
+    def set_state_from_sms(self, sms: Any) -> None:
+        """Set sensor state and attributes from an InboundSms model."""
+        self._state = sms.sender
+        self._attributes = {
+            "message": sms.message,
+            "recipient": sms.recipient,
+            "timestamp": sms.timestamp,
+            "message_id": sms.message_id,
+        }
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    @property
+    def extra_state_attributes(self):
+        """Return additional state attributes."""
+        return self._attributes

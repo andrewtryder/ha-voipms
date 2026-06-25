@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from custom_components.voipms_custom.api import VoipMsRestClient
+from custom_components.voipms.api import VoipMsRestClient
 
 
 def test_get_cdr_passes_call_status_filters() -> None:

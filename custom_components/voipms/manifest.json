@@ -1,5 +1,5 @@
 {
-  "domain": "voipms_custom",
+  "domain": "voipms",
   "name": "VoIP.MS",
   "codeowners": [
     "@andrewtryder"

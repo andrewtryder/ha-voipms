@@ -1,9 +1,9 @@
-"""Constants for the VoIP.ms Custom integration."""
+"""Constants for the VoIP.ms integration."""
 
 import logging
 from datetime import timedelta
 
-DOMAIN = "voipms_custom"
+DOMAIN = "voipms"
 
 LOGGER = logging.getLogger(__package__)
 

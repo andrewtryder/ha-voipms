@@ -5,7 +5,7 @@
       "extra-files": [
         {
           "type": "json",
-          "path": "custom_components/voipms_custom/manifest.json",
+          "path": "custom_components/voipms/manifest.json",
           "jsonpath": "$.version"
         }
       ]

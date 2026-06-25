@@ -4,7 +4,7 @@ from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.voipms_custom.const import CONF_DEFAULT_DID, DOMAIN
+from custom_components.voipms.const import CONF_DEFAULT_DID, DOMAIN
 
 
 async def test_notify_entity_created(hass: HomeAssistant, mock_voipms_client) -> None:
@@ -29,7 +29,7 @@ async def test_notify_entity_created(hass: HomeAssistant, mock_voipms_client) ->
 async def test_send_sms_service_calls_send_sms(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:
-    """Test the voipms_custom.send_sms service invokes sendSMS on the client."""
+    """Test the voipms.send_sms service invokes sendSMS on the client."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={
