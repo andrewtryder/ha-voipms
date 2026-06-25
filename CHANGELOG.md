@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0](https://github.com/andrewtryder/ha-voipms/compare/v1.5.0...v1.6.0) (2026-06-25)
+
+
+### Features
+
+* **integration:** add call tracking, voicemail counter, and fix SMS sensor reversion ([bc00045](https://github.com/andrewtryder/ha-voipms/commit/bc0004574708e1db11b380a69cb84605c91a2265))
+* **integration:** add call tracking, voicemail counter, and fix SMS sensor reversion ([068040d](https://github.com/andrewtryder/ha-voipms/commit/068040dfcf3e2b4a71167bdba38070bb237af75b))
+
 ## [1.5.0](https://github.com/andrewtryder/ha-voipms/compare/v1.4.0...v1.5.0) (2026-06-25)
 
 
