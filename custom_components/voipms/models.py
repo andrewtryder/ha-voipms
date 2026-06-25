@@ -2,16 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Mapping
-
-from homeassistant.const import (
-    CONF_MESSAGE,
-    CONF_SENDER,
-    CONF_RECIPIENT,
-    CONF_ID,
-    CONF_TIMESTAMP,
-)
 
 
 class InboundSmsValidationError(ValueError):

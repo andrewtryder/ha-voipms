@@ -1,6 +1,6 @@
 """Test VoIP.ms inbound SMS processor."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, EVENT_LOGBOOK_ENTRY
 from homeassistant.setup import async_setup_component

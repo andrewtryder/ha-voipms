@@ -11,6 +11,7 @@ from homeassistant.components.webhook import async_register, async_unregister
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.network import get_url
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 
 from .api import VoipMsRestClient
 from .const import DOMAIN, build_webhook_callback_url, CONF_DEFAULT_DID

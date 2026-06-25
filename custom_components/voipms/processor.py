@@ -1,7 +1,5 @@
 """Inbound SMS processing for VoIP.ms integration."""
 
-"""Inbound SMS processing for VoIP.ms integration."""
-
 from __future__ import annotations
 
 import logging
