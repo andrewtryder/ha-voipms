@@ -1,7 +1,5 @@
 """Inbound SMS processing for VoIP.ms integration."""
 
-"""Inbound SMS processing for VoIP.ms integration."""
-
 from __future__ import annotations
 
 import logging
@@ -12,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.const import EVENT_LOGBOOK_ENTRY
 from homeassistant.helpers import entity_registry as er
 
+from .const import DOMAIN, EVENT_INBOUND_SMS
 from .models import InboundSms
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,10 +39,8 @@ def _log_inbound_sms_to_logbook(
 
     logbook_data = {
         "name": LOGBOOK_NAME,
-        "message": (
-            f"SMS from {sms.sender} to {sms.recipient}: {message_text}"
-        ),
-        "domain": "voipms",
+        "message": (f"SMS from {sms.sender} to {sms.recipient}: {message_text}"),
+        "domain": DOMAIN,
     }
     if entity_id is not None:
         logbook_data["entity_id"] = entity_id
@@ -51,9 +48,7 @@ def _log_inbound_sms_to_logbook(
     hass.bus.async_fire(EVENT_LOGBOOK_ENTRY, logbook_data)
 
 
-def _create_inbound_sms_notification(
-    hass: HomeAssistant, sms: InboundSms
-) -> None:
+def _create_inbound_sms_notification(hass: HomeAssistant, sms: InboundSms) -> None:
     """Create a persistent notification for an inbound SMS."""
     notification_id = f"voipms_sms_{sms.message_id}" if sms.message_id else None
 
@@ -116,7 +111,6 @@ async def process_inbound_sms(
     )
 
     # Fire event for automations
-    from homeassistant.const import EVENT_INBOUND_SMS
     hass.bus.async_fire(EVENT_INBOUND_SMS, sms.to_event_data())
 
     # Write to logbook

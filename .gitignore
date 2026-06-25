@@ -11,6 +11,3 @@ htmlcov/
 
 # Local Home Assistant config (docker-compose)
 config/
-
-# Asset builder archive (source tooling is committed under tools/)
-voipms_asset_builder.zip

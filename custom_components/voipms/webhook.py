@@ -6,11 +6,10 @@ import logging
 
 from aiohttp import web
 from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
-from homeassistant.components.webhook import async_register, async_unregister
-
+from homeassistant.components.webhook import async_unregister
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.network import get_url
 
 from .api import VoipMsRestClient
 from .const import DOMAIN, build_webhook_callback_url, CONF_DEFAULT_DID
@@ -72,7 +71,9 @@ async def async_register_inbound_sms_webhook(
             _LOGGER.error("Error handling VoIP.ms webhook: %s", err)
             return web.Response(status=500)
 
-    async_register(
+    from custom_components import voipms
+
+    voipms.async_register(
         hass,
         DOMAIN,
         "VoIP.ms SMS",
@@ -83,7 +84,7 @@ async def async_register_inbound_sms_webhook(
 
     # Register callback with VoIP.ms API
     try:
-        external_url = get_url(hass, prefer_external=True, allow_cloud=True)
+        external_url = voipms.get_url(hass, prefer_external=True, allow_cloud=True)
         webhook_url = build_webhook_callback_url(external_url, webhook_id)
         did = entry.data.get(CONF_DEFAULT_DID)
         if did:
