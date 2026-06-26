@@ -29,7 +29,18 @@ async def test_sensors(hass: HomeAssistant, mock_voipms_client) -> None:
     }
     mock_voipms_client.get_voicemails.return_value = {
         "status": "success",
-        "voicemails": [{"id": "1"}, {"id": "2"}, {"id": "3"}],
+        "voicemails": [
+            {"mailbox": "100"},
+            {"mailbox": "101"},
+            {"mailbox": "102"},
+        ],
+    }
+    mock_voipms_client.get_voicemail_messages.return_value = {
+        "status": "success",
+        "messages": [
+            {"message_num": "1", "caller_id": "5559876543"},
+            {"message_num": "2", "caller_id": "5551112222"},
+        ],
     }
 
     entry = MockConfigEntry(
@@ -59,4 +70,4 @@ async def test_sensors(hass: HomeAssistant, mock_voipms_client) -> None:
 
     voicemail_state = hass.states.get("sensor.voip_ms_voicemails")
     assert voicemail_state is not None
-    assert voicemail_state.state == "3"
+    assert voicemail_state.state == "6"

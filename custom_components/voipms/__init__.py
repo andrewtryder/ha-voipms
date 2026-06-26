@@ -20,7 +20,7 @@ from .webhook import (
     async_unregister_inbound_sms_webhook,
 )
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.NOTIFY]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.NOTIFY]
 
 _LOGGER = logging.getLogger(__name__)
 
