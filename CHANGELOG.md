@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0](https://github.com/andrewtryder/ha-voipms/compare/v1.6.0...v1.7.0) (2026-06-26)
+
+
+### Features
+
+* **integration:** add SIP registration monitoring via binary sensors ([a410929](https://github.com/andrewtryder/ha-voipms/commit/a4109295cbdb82492b06a91c553bb9aba7b7a775))
+* **integration:** add SIP registration monitoring via binary sensors ([8d5738a](https://github.com/andrewtryder/ha-voipms/commit/8d5738a454b60b0b3cf326f2f4d6f5789a827146))
+
 ## [1.6.0](https://github.com/andrewtryder/ha-voipms/compare/v1.5.0...v1.6.0) (2026-06-25)
 
 
