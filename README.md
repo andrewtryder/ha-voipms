@@ -1,287 +1,171 @@
-# VoIP.MS
+<p align="center">
+  <img src="https://voip.ms/resources/img/logo.svg" alt="VoIP.ms" width="260">
+</p>
 
-## Overview
+# VoIP.MS for Home Assistant
 
-VoIP.MS is a Home Assistant integration that provides access to the VoIP.ms telephone service API. This integration allows you to manage your VoIP.ms phone service directly within Home Assistant.
+<p align="center">
+  <a href="https://github.com/andrewtryder/ha-voipms/actions/workflows/ci.yml"><img src="https://github.com/andrewtryder/ha-voipms/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/andrewtryder/ha-voipms/releases"><img src="https://img.shields.io/github/v/release/andrewtryder/ha-voipms?label=release" alt="Latest release"></a>
+  <a href="https://hacs.xyz/docs/faq/custom_repositories"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS custom repository"></a>
+  <img src="https://img.shields.io/badge/Home%20Assistant-2024.11.0%2B-41BDF5.svg" alt="Home Assistant 2024.11.0+">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/andrewtryder/ha-voipms" alt="License"></a>
+</p>
+
+Bring VoIP.ms account data, SMS, and call activity into Home Assistant.
+
+This custom integration uses the VoIP.ms REST API to expose account sensors, SIP registration status, inbound SMS events, call events, and an SMS sending service.
+
+## Features
+
+- Account balance, inbound calls, outbound calls, voicemail count, last SMS, and last call sensors.
+- SIP subaccount registration binary sensors.
+- Incoming SMS webhook support with Home Assistant events, logbook entries, persistent notifications, and a last-SMS sensor.
+- Call activity events, logbook entries, persistent notifications, and a last-call sensor.
+- `voipms.send_sms` service for automations, scripts, and dashboards.
+- Optional Lovelace SMS card.
+
+## Requirements
+
+- Home Assistant `2024.11.0` or newer.
+- A VoIP.ms account with the REST/JSON API enabled.
+- VoIP.ms API username and API password.
+- A default DID for SMS and webhook registration.
 
 ## Installation
 
-### Using HACS (Home Assistant Community Store)
+### HACS
 
-1. Make sure the **HACS** integration is enabled in your Home Assistant instance.
-2. Go to **HACS** → **Integrations** → **Repository Manager**.
-3. Click on the **<>+** button in the top right corner.
-4. Select "Custom Repository" and enter the following details:
-   - **Repository URL**: `https://github.com/andrewtryder/ha-voipms`
-   - **Category**: Integration
-5. Click "Submit" and wait for the integration to be installed.
+1. Open **HACS** in Home Assistant.
+2. Add this repository as a custom integration repository:
 
-### Manual Installation
+   ```text
+   https://github.com/andrewtryder/ha-voipms
+   ```
 
-Add the integration directory to your Home Assistant configuration:
+3. Install **VoIP.MS** from HACS.
+4. Restart Home Assistant.
+
+### Manual
+
+Copy the integration into your Home Assistant `custom_components` directory:
+
 ```bash
 cp -r custom_components/voipms /config/custom_components/
 ```
 
-Restart Home Assistant after installation.
+Restart Home Assistant after copying the files.
 
 ## Configuration
 
-After adding the integration, navigate to **Settings** → **Devices & Services** → **VoIP.MS** and click on "Configure".
+1. In Home Assistant, go to **Settings → Devices & services**.
+2. Add **VoIP.MS**.
+3. Enter your VoIP.ms API username, API password, and default DID.
 
-You'll need to provide the following configuration parameters:
+The integration polls VoIP.ms every 5 minutes.
 
-- **API Username**: Your VoIP.ms API username
-- **API Password**: Your VoIP.ms API password
-- **Default DID**: The phone number used for SMS and webhook registration
+## Entities and events
 
-The integration will automatically populate sensors related to your VoIP.ms account including:
+### Sensors
 
-- Current balance
-- Inbound calls (last 24 hours)
-- Outbound calls (last 24 hours)
+| Entity | Description |
+| --- | --- |
+| Account Balance | Current VoIP.ms balance |
+| Inbound Calls (24h) | Inbound call count from the last 24 hours |
+| Outbound Calls (24h) | Outbound call count from the last 24 hours |
+| Voicemails | Current voicemail message count |
+| Last SMS | Most recent inbound SMS details |
+| Last Call | Most recent tracked call details |
 
-## Usage
+### Binary sensors
 
-Once configured, the integration will automatically update sensors with data from your VoIP.ms account. You can use these sensors in your automations and dashboards:
+A connectivity binary sensor is created for each SIP subaccount returned by VoIP.ms. Each sensor shows whether the subaccount is currently registered.
 
-```yaml
-automation:
-  - alias: Check VoIP Balance
-    trigger:
-      - platform: numeric_state
-        entity_id: sensor.voip_ms_account_balance
-        below: 5
-    action:
-      - service: notify.notify
-        data:
-          message: "Your VoIP.ms balance is running low: {{ states('sensor.voip_ms_account_balance') }}"
-```
+### Events
 
-## Incoming SMS
+| Event | When it fires |
+| --- | --- |
+| `voipms_inbound_sms` | A valid inbound SMS is received |
+| `voipms_inbound_call` | A new inbound call record is detected |
+| `voipms_outbound_call` | A new outbound call record is detected |
 
-### End‑to‑end flow
-1. A text message arrives at your VoIP.ms DID.
-2. VoIP.ms delivers an HTTP GET request (or POST if configured) to the webhook registered in Home Assistant.
-3. The webhook validates the payload (requires `from`, `to`, `message`, `id`, `date`).
-4. The validated message is processed:
-   - A `voipms_inbound_sms` event is fired for automations
-   - A logbook entry appears in **Activity**
-   - A persistent notification appears in the **Notifications** panel
-   - The `sensor.voip_ms_last_sms` sensor is updated with the latest message details
+## Sending SMS
 
-### Webhook and VoIP.ms setup
-- The integration automatically registers a VoIP.ms callback URL when you reload the integration.
-- The callback URL template is: `{base_url}/api/webhook/{webhook_id}?to={TO}&from={FROM}&message={MESSAGE}&id={ID}&date={TIMESTAMP}`
-- Use this URL in the **SMS / MMS → Callback URL** field in your VoIP.ms control panel.
-
-### Example webhook payload
-```
-to=5551234567
-from=5559876543
-message=Hello from VoIP.ms!
-id=abc123
-date=2024-01-01 12:34:56
-```
-
-### MQTT/event‑driven automations
-Trigger automations when a new SMS arrives:
-
-```yaml
-automation:
-  - alias: Notify on new SMS
-    trigger:
-      - platform: event
-        event_type: voipms_inbound_sms
-    action:
-      - service: notify.mobile_app_phone
-        data:
-          message: "New SMS from {{ trigger.event.data.from }}: {{ trigger.event.data.message }}"
-```
-
-### Mobile app notifications
-Your phone will receive a Home Assistant notification with:
-- **Title**: `SMS from {from}`
-- **Message**: The full SMS text
-- **Notification ID**: `voipms_sms_{id}` (prevents duplicates)
-
-### Sensor reference
-Use `sensor.voip_ms_last_sms` to see the most recent inbound SMS:
-
-| Attribute | Description |
-|-----------|-------------|
-| `state` | Sender phone number (`from`) |
-| `message` | Full SMS text (`message`) |
-| `recipient` | Destination DID (`to`) |
-| `timestamp` | When the SMS arrived (`date`) |
-| `message_id` | Unique VoIP.ms message ID (`id`) |
-
-Example dashboard card:
-```yaml
-type: entities
-entities:
-  - sensor.voip_ms_last_sms
-  - sensor.voip_ms_account_balance
-```
-
-### Invalid payloads
-If the webhook receives a malformed or incomplete payload (missing required fields), it logs a warning but returns HTTP 200 OK to prevent VoIP.ms from retrying. No event, notification, or sensor update occurs in this case.
-
-### Troubleshooting
-Refer to the **Troubleshooting** section for webhook registration, credentials, and external URL setup instructions.
-
-## Services
-
-### `voipms.send_sms`
-
-Send an SMS through VoIP.MS. Exposed as a service so automations, scripts, and the Lovelace card can send messages.
-
-| Field | Required | Description |
-|---|---|---|
-| `to` | yes | Destination phone number |
-| `message` | yes | Text message to send |
-| `did` | no | Sender DID. Defaults to the configured Default DID |
+Use the `voipms.send_sms` service:
 
 ```yaml
 service: voipms.send_sms
 data:
   to: "5559876543"
   message: "Hello from Home Assistant"
-  did: "5551234567"  # optional
+  did: "5551234567" # optional; defaults to the configured DID
 ```
 
-A `notify.voip_ms_sms` entity is also created for standard notify integrations; use `voipms.send_sms` when you need to specify the recipient directly.
+## Receiving SMS
 
-## Lovelace card (optional)
+When the integration loads, it attempts to register the VoIP.ms SMS callback URL automatically using your Home Assistant external URL.
 
-A compact "Send SMS" card is bundled in this repo at [`frontend/dist/voipms-sms-card.js`](frontend/dist/voipms-sms-card.js). It provides From DID, To, and Message fields and a Send button that calls `voipms.send_sms`.
+A valid inbound SMS will:
 
-### Install as a Lovelace resource
+- Fire a `voipms_inbound_sms` event.
+- Add a Home Assistant logbook entry.
+- Create a persistent notification.
+- Update the Last SMS sensor.
 
-1. Download [`frontend/dist/voipms-sms-card.js`](frontend/dist/voipms-sms-card.js) to `/config/www/voipms-sms-card.js` on your Home Assistant instance (e.g., via the Terminal add-on or Samba).
-2. Go to **Settings → Dashboards → Resources → Add resource**.
-3. URL: `/local/voipms-sms-card.js`, Type: **JavaScript module**.
-4. Refresh your browser.
+If automatic registration fails, configure the callback manually in the VoIP.ms portal with this shape:
 
-### Card configuration
+```text
+https://YOUR_HOME_ASSISTANT_URL/api/webhook/WEBHOOK_ID?to={TO}&from={FROM}&message={MESSAGE}&id={ID}&date={TIMESTAMP}
+```
+
+Your Home Assistant external URL must be reachable from the internet, or available through Home Assistant Cloud.
+
+## Optional Lovelace card
+
+A compact Send SMS card is bundled at:
+
+```text
+frontend/dist/voipms-sms-card.js
+```
+
+Add it as a JavaScript module resource in Home Assistant:
+
+```text
+/local/voipms-sms-card.js
+```
+
+Example card configuration:
 
 ```yaml
 type: custom:voipms-sms-card
-title: Send SMS         # optional, defaults to "Send SMS"
-did: "5551234567"       # optional, pre-fills the From DID
-to: "5559876543"        # optional, pre-fills the To field
+title: Send SMS
+did: "5551234567"
+to: "5559876543"
 ```
-
-## Sensors
-
-The integration provides the following sensors:
-
-- **Account Balance**: Current account balance
-- **Inbound Calls (24h)**: Inbound calls in the last 24 hours
-- **Outbound Calls (24h)**: Outbound calls in the last 24 hours
 
 ## Troubleshooting
 
-### Setup authentication errors
+### Authentication fails
 
-If setup fails with **Invalid authentication**, **Failed to connect**, or a more specific message, work through these steps in order.
+- Confirm the VoIP.ms API is enabled under **SOAP and REST/JSON API**.
+- Use the API username and API password, not necessarily your VoIP.ms portal login.
+- If IP restriction is enabled in VoIP.ms, allow your Home Assistant outbound public IP.
+- Remove and re-add the integration after changing API credentials.
 
-#### 1. Enable debug logging
+### Data is not updating
 
-Add this to `configuration.yaml`, or use **Settings → System → Logs → Configure loggers**:
+- Check **Settings → System → Logs** for `custom_components.voipms` messages.
+- Verify Home Assistant can reach `https://voip.ms` over HTTPS.
+- Confirm the integration is configured and not in a failed state.
 
-```yaml
-logger:
-  default: warning
-  logs:
-    custom_components.voipms: debug
-```
+### Inbound SMS is not received
 
-Restart Home Assistant, retry adding the integration, then check **Settings → System → Logs** (or `home-assistant.log`):
+- Update to the latest release and restart Home Assistant.
+- Confirm **Settings → System → Network → External URL** is reachable externally.
+- Reload the VoIP.MS integration so it can re-register the SMS webhook.
+- Check the VoIP.ms DID SMS callback settings for `{TO}`, `{FROM}`, and `{MESSAGE}` placeholders.
 
-| Log message | Meaning |
-|---|---|
-| `Connection error:` | Network, HTTP, or JSON parse failure — not a bad password |
-| `VoIP.ms auth failed:` | API reachable; the logged JSON shows the VoIP.ms `status` value |
-| `Unexpected exception` | Check the stack trace for an integration or environment issue |
-
-#### 2. Confirm VoIP.ms API credentials
-
-Use **API credentials**, not necessarily your web portal login:
-
-1. Log in at [voip.ms](https://voip.ms)
-2. Go to **Main Menu → SOAP and REST/JSON API**
-3. Confirm the **API is enabled**
-4. Copy the **API Username** and **API Password** shown there
-5. If **IP restriction** is enabled, add your Home Assistant instance's **outbound public IP**
-
-The **Default DID** field does not affect authentication during setup.
-
-#### 3. Test the API outside Home Assistant
-
-Run this from a machine on the same outbound network as Home Assistant (ideally the HA host via SSH or the Terminal add-on):
-
-```bash
-curl -sS -G "https://voip.ms/api/v1/rest.php" \
-  --data-urlencode "api_username=YOUR_API_USERNAME" \
-  --data-urlencode "api_password=YOUR_API_PASSWORD" \
-  --data-urlencode "method=getBalance" \
-  --data-urlencode "content_type=json"
-```
-
-| Response `status` | Next step |
-|---|---|
-| `success` | Credentials work — delete any existing VoIP.MS config entry, restart HA, and re-add the integration |
-| `invalid_credentials` | Reset the API password in the VoIP.ms portal and retry |
-| `ip_not_enabled` | Allowlist your HA public IP in VoIP.ms API settings |
-| `api_not_enabled` | Enable the API in the VoIP.ms portal |
-| Timeout or non-JSON body | Fix outbound HTTPS/DNS from the HA host; check proxies and firewalls |
-
-#### 4. Remove stale config entries
-
-The integration allows only one entry per API username. If credentials changed or a prior attempt left a broken entry:
-
-1. **Settings → Devices & Services → VoIP.MS** — delete the entry
-2. Restart Home Assistant
-3. Re-add the integration with current credentials
-
-There is no reconfigure flow yet; credential changes require removing and re-adding the integration.
-
-#### 5. Credential hygiene
-
-- Paste credentials directly from the VoIP.ms portal — avoid trailing spaces
-- Passwords with `&`, `+`, or `%` are URL-encoded automatically; re-type if copied from a mobile device with smart quotes
-- After changing the API password in VoIP.ms, remove and re-add the integration
-
-### Inbound SMS not received
-
-If you send a text to your VoIP.ms number but nothing appears in Home Assistant, work through these steps in order.
-
-#### 1. Confirm you are on a current version
-
-Check the integration version shown in **Settings → Devices & Services → VoIP.MS**. It should match the latest [GitHub release](https://github.com/andrewtryder/ha-voipms/releases) (v1.3.1 or newer). If it still shows an old version such as `1.0.0`, update via HACS and restart Home Assistant.
-
-#### 2. Update and reload the integration
-
-Updating files alone is not enough — the SMS webhook is re-registered only when the integration loads:
-
-1. **HACS** → **VoIP.MS** → Download/Update (or select the latest release)
-2. Restart Home Assistant
-3. **Settings → Devices & Services → VoIP.MS** → **Reload**
-
-#### 3. Check startup logs for webhook registration
-
-After reload, search logs for `Registered VoIP.ms webhook`. A successful registration looks like:
-
-```
-Registered VoIP.ms webhook https://your-ha-url/api/webhook/voipms_...?to={TO}&from={FROM}&message={MESSAGE}&id={ID}&date={TIMESTAMP}: {'status': 'success'}
-```
-
-If you see `Failed to register webhook with VoIP.ms`, check API credentials, the Default DID, and that your HA outbound IP is allowlisted in the VoIP.ms portal.
-
-#### 4. Enable debug logging for webhooks
-
-Inbound SMS delivery logs at `INFO` level and may be hidden by default filters. Add this to `configuration.yaml`, or use **Settings → System → Logs → Configure loggers**:
+Enable debug logging when needed:
 
 ```yaml
 logger:
@@ -291,85 +175,28 @@ logger:
     homeassistant.components.webhook: debug
 ```
 
-Restart Home Assistant, send a test SMS, then check logs for:
-
-| Log message | Meaning |
-|---|---|
-| `Received VoIP.ms SMS from ...` | Webhook delivered successfully; check **Activity** and **Developer Tools → Events** for `voipms_inbound_sms` |
-| `Webhook ... only supports ... methods but GET was received` | Old integration version — update to v1.3.1+ and reload |
-| `Received remote request for local webhook` | External URL not reachable; fix network or Nabu Casa setup |
-| No `voipms` or `webhook` entries | VoIP.ms may not be reaching your HA instance |
-
-#### 5. Verify external URL reachability
-
-VoIP.ms delivers SMS via HTTP GET to your Home Assistant **external** URL. Local requests from `127.0.0.1` (for example, opening the webhook URL in a browser on the HA host) are not VoIP.ms delivery.
-
-1. Set **Settings → System → Network → External URL** to an address reachable from the internet, or use **Nabu Casa**
-2. Confirm the URL is accessible from outside your LAN (not just locally)
-3. In the VoIP.ms portal (**DID Numbers → Manage DID → SMS/MMS**), confirm the URL callback includes `{TO}`, `{FROM}`, and `{MESSAGE}` query templates
-
-The integration registers this URL automatically via the API when you reload. You can also verify it matches the URL shown in the `Registered VoIP.ms webhook` log line.
-
-#### 6. Listen for the inbound SMS event
-
-In **Developer Tools → Events**, start listening for `voipms_inbound_sms`, then send a test SMS. A successful delivery fires an event with `to`, `from`, `message`, `id`, and `date` fields and adds an entry to **Activity**.
-
-### Common Issues
-
-1. **API Authentication Failed**
-   - Follow the [setup authentication errors](#setup-authentication-errors) steps above
-   - Ensure your VoIP.ms account is active
-
-2. **Data Not Updating**
-   - Check if the sensors are in the "unknown" state
-   - Verify network connectivity
-   - Ensure the integration is configured correctly
-
-3. **Missing Sensors**
-   - Restart Home Assistant after installation
-   - Check that the integration shows as "configured"
-   - Verify the integration is not in a "failed" state
-
-### Getting Help
-
-- **Documentation**: https://voip.ms/m/apidocs.php
-- **Issue Tracker**: https://github.com/andrewtryder/ha-voipms/issues
-- **Community**: Join the Home Assistant community forums
-
 ## Development
 
-### Prerequisites
-
-- Home Assistant Core
-- Python 3.12+
-
-### Installation
+Install dependencies:
 
 ```bash
 python -m pip install -r requirements.txt -r requirements-dev.txt
 ```
 
-### Testing
-
-Run the test suite to ensure everything is working correctly:
+Run checks:
 
 ```bash
-coverage run -m pytest
-```
-
-### Code Style
-
-This project uses `ruff` for linting and formatting. Run these commands before committing:
-
-```bash
-ruff check .
 ruff format --check .
+ruff check .
+PYTHONPATH=. coverage run -m pytest
 ```
 
 ## Support
 
-This integration is maintained by [andrewtryder](https://github.com/andrewtryder). Please report any issues or feature requests on the issue tracker.
+- [VoIP.ms API documentation](https://voip.ms/m/apidocs.php)
+- [GitHub issues](https://github.com/andrewtryder/ha-voipms/issues)
+- [Home Assistant community](https://community.home-assistant.io/)
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License. See [LICENSE](LICENSE).
