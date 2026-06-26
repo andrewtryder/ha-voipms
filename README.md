@@ -14,7 +14,7 @@
 
 Bring VoIP.ms account data, SMS, and call activity into Home Assistant.
 
-This custom integration uses the VoIP.ms REST API to expose account sensors, SIP registration status, inbound SMS events, call events, and an SMS sending service.
+This an unofficial, custom integration uses the VoIP.ms REST API to expose account sensors, SIP registration status, inbound SMS events, call events, and an SMS sending service.
 
 ## Features
 
@@ -29,7 +29,7 @@ This custom integration uses the VoIP.ms REST API to expose account sensors, SIP
 
 - Home Assistant `2024.11.0` or newer.
 - A VoIP.ms account with the REST/JSON API enabled.
-- VoIP.ms API username and API password.
+- VoIP.ms API username and API password, with proper IP address allowance.
 - A default DID for SMS and webhook registration.
 
 ## Installation
