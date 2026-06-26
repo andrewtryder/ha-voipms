@@ -54,6 +54,7 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
             "outbound_calls_24h": 0,
             "voicemail_count": 0,
             "new_calls": [],
+            "registrations": {},
         }
 
         try:
@@ -68,13 +69,69 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("Error fetching balance: %s", ex)
 
         try:
+            registrations: dict[str, dict[str, Any]] = {}
+            subs_result = self.client.get_sub_accounts()
+            if subs_result.get("status") == "success":
+                subaccounts = subs_result.get("subaccounts", [])
+                if isinstance(subaccounts, dict):
+                    subaccounts = [subaccounts]
+                if isinstance(subaccounts, list):
+                    for sub in subaccounts:
+                        account_name = sub.get("account")
+                        if not account_name:
+                            continue
+                        try:
+                            reg_result = self.client.get_registration_status(
+                                account=account_name
+                            )
+                            registrations[account_name] = {
+                                "registered": (reg_result.get("registered") == "yes"),
+                                "description": sub.get("description", ""),
+                                "device_type": sub.get("device_type", ""),
+                                "callerid_number": sub.get("callerid_number", ""),
+                                "protocol": sub.get("protocol", ""),
+                            }
+                        except (VoipMsApiError, ValueError) as ex:
+                            _LOGGER.warning(
+                                "Error fetching registration status for %s: %s",
+                                account_name,
+                                ex,
+                            )
+            data["registrations"] = registrations
+        except (VoipMsApiError, ValueError) as ex:
+            _LOGGER.warning("Error fetching subaccounts: %s", ex)
+
+        try:
             vm_result = self.client.get_voicemails()
             if vm_result.get("status") == "success":
-                voicemails = vm_result.get("voicemails", [])
-                if isinstance(voicemails, list):
-                    data["voicemail_count"] = len(voicemails)
-                elif isinstance(voicemails, dict):
-                    data["voicemail_count"] = 1
+                mailboxes = vm_result.get("voicemails", [])
+                if isinstance(mailboxes, dict):
+                    mailboxes = [mailboxes]
+                if isinstance(mailboxes, list):
+                    total_messages = 0
+                    for mailbox in mailboxes:
+                        if not isinstance(mailbox, dict):
+                            continue
+                        mailbox_id = mailbox.get("mailbox")
+                        if not mailbox_id:
+                            continue
+                        try:
+                            msg_result = self.client.get_voicemail_messages(
+                                mailbox=mailbox_id
+                            )
+                            if msg_result.get("status") == "success":
+                                messages = msg_result.get("messages", [])
+                                if isinstance(messages, dict):
+                                    messages = [messages]
+                                if isinstance(messages, list):
+                                    total_messages += len(messages)
+                        except (VoipMsApiError, ValueError) as ex:
+                            _LOGGER.warning(
+                                "Error fetching messages for mailbox %s: %s",
+                                mailbox_id,
+                                ex,
+                            )
+                    data["voicemail_count"] = total_messages
             else:
                 _LOGGER.debug("Failed to fetch voicemails: %s", vm_result)
         except (VoipMsApiError, ValueError) as ex:

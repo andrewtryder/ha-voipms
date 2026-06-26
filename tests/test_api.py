@@ -22,3 +22,23 @@ def test_get_cdr_passes_call_status_filters() -> None:
         busy=1,
         failed=1,
     )
+
+
+def test_get_sub_accounts() -> None:
+    """Test getSubAccounts calls the correct API method."""
+    client = VoipMsRestClient("user", "pass")
+    client.call = MagicMock(return_value={"status": "success", "subaccounts": []})
+
+    client.get_sub_accounts()
+
+    client.call.assert_called_once_with("getSubAccounts")
+
+
+def test_get_registration_status() -> None:
+    """Test getRegistrationStatus calls the correct API method with account."""
+    client = VoipMsRestClient("user", "pass")
+    client.call = MagicMock(return_value={"status": "success", "registered": "yes"})
+
+    client.get_registration_status(account="100001_ata")
+
+    client.call.assert_called_once_with("getRegistrationStatus", account="100001_ata")

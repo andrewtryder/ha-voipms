@@ -36,6 +36,18 @@ def mock_voipms_client():
         "status": "success",
         "voicemails": [],
     }
+    mock_instance.get_voicemail_messages.return_value = {
+        "status": "success",
+        "messages": [],
+    }
+    mock_instance.get_sub_accounts.return_value = {
+        "status": "success",
+        "subaccounts": [],
+    }
+    mock_instance.get_registration_status.return_value = {
+        "status": "success",
+        "registered": "no",
+    }
 
     patch_targets = (
         "custom_components.voipms.VoipMsRestClient",

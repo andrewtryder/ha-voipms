@@ -104,5 +104,17 @@ class VoipMsRestClient:
         )
 
     def get_voicemails(self) -> dict[str, Any]:
-        """Fetch voicemail messages."""
+        """Fetch voicemail mailbox configurations."""
         return self.call("getVoicemails")
+
+    def get_voicemail_messages(self, *, mailbox: str) -> dict[str, Any]:
+        """Fetch voicemail messages for a specific mailbox."""
+        return self.call("getVoicemailMessages", mailbox=mailbox)
+
+    def get_sub_accounts(self) -> dict[str, Any]:
+        """Fetch all subaccounts."""
+        return self.call("getSubAccounts")
+
+    def get_registration_status(self, *, account: str) -> dict[str, Any]:
+        """Fetch SIP registration status for a subaccount."""
+        return self.call("getRegistrationStatus", account=account)
