@@ -1,8 +1,11 @@
 """Test VoIP.ms REST API client."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+from urllib.error import HTTPError, URLError
 
-from custom_components.voipms.api import VoipMsRestClient
+import pytest
+
+from custom_components.voipms.api import VoipMsApiError, VoipMsRestClient
 
 
 def test_get_cdr_passes_call_status_filters() -> None:
@@ -42,3 +45,23 @@ def test_get_registration_status() -> None:
     client.get_registration_status(account="100001_ata")
 
     client.call.assert_called_once_with("getRegistrationStatus", account="100001_ata")
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [
+        URLError("Network error"),
+        TimeoutError("Timeout"),
+        OSError("OS error"),
+        HTTPError("http://test", 500, "Internal Server Error", {}, None),
+    ],
+)
+def test_api_client_handles_http_errors(exception: Exception) -> None:
+    """Test API client wraps expected network exceptions in VoipMsApiError."""
+    client = VoipMsRestClient("user", "pass")
+
+    with patch("custom_components.voipms.api.urlopen", side_effect=exception):
+        with pytest.raises(VoipMsApiError) as exc_info:
+            client.call("some_method")
+
+        assert "VoIP.ms REST API request failed" in str(exc_info.value)
