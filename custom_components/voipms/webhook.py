@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 
+from typing import Any
+
 from aiohttp import web
 from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
 from homeassistant.components.webhook import async_unregister
@@ -89,7 +91,7 @@ async def async_register_inbound_sms_webhook(
         did = entry.data.get(CONF_DEFAULT_DID)
         if did:
 
-            def register_webhook():
+            def register_webhook() -> dict[str, Any]:
                 client = VoipMsRestClient(
                     entry.data[CONF_USERNAME],
                     entry.data[CONF_PASSWORD],
