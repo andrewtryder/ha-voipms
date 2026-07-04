@@ -12,10 +12,12 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import VoipmsDataUpdateCoordinator
+from .helpers import voipms_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,13 +71,9 @@ class VoipmsRegistrationBinarySensor(
         }
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "VoIP.MS",
-            "manufacturer": "VoIP.MS",
-        }
+        return voipms_device_info(self._entry.entry_id)
 
     @property
     def is_on(self) -> bool:

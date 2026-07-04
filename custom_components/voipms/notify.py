@@ -12,10 +12,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import VoipMsRestClient
 from .const import CONF_DEFAULT_DID, DOMAIN
+from .helpers import voipms_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,13 +78,9 @@ class VoipmsNotifyEntity(NotifyEntity):
         return self._default_did
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device information linking this entity to the integration."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "VoIP.MS",
-            "manufacturer": "VoIP.MS",
-        }
+        return voipms_device_info(self._entry.entry_id)
 
     async def async_send_message(self, message: str = "", **kwargs: Any) -> None:
         """Send a message via VoIP.MS SMS.
