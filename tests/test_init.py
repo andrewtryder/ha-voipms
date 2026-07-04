@@ -80,4 +80,4 @@ async def test_inbound_sms_event_creates_persistent_notification(
     notifications = _async_get_or_create_notifications(hass)
     assert "voipms_sms_42" in notifications
     assert notifications["voipms_sms_42"]["message"] == "hello"
-    assert notifications["voipms_sms_42"]["title"] == "SMS from 5559876543"
+    assert notifications["voipms_sms_42"]["title"] == "SMS from ******6543"

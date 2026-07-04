@@ -164,7 +164,7 @@ async def test_inbound_sms_webhook_writes_logbook_entry(
     assert len(logbook_events) == 1
     assert logbook_events[0]["name"] == "VoIP.MS"
     assert logbook_events[0]["domain"] == DOMAIN
-    assert "SMS from 5559876543 to 5551234567: hello" in logbook_events[0]["message"]
+    assert "SMS from ******6543 to ******4567: hello" in logbook_events[0]["message"]
     assert logbook_events[0]["entity_id"] == "sensor.voip_ms_account_balance"
 
 
@@ -201,4 +201,4 @@ async def test_inbound_sms_webhook_creates_persistent_notification(
     notifications = _async_get_or_create_notifications(hass)
     assert "voipms_sms_42" in notifications
     assert notifications["voipms_sms_42"]["message"] == "hello"
-    assert notifications["voipms_sms_42"]["title"] == "SMS from 5559876543"
+    assert notifications["voipms_sms_42"]["title"] == "SMS from ******6543"
