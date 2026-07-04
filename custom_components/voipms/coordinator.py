@@ -183,8 +183,8 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                         self._seen_call_ids.add(call_record.unique_id)
                         if self._calls_initialized:
                             new_calls.append(call_record)
-                    except ValueError:
-                        pass
+                    except ValueError as ex:
+                        _LOGGER.warning("Failed to parse call record: %s", ex)
 
                 if not self._calls_initialized:
                     self._calls_initialized = True
