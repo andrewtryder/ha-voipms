@@ -1,5 +1,0 @@
-fix(processor): mask sensitive phone numbers in SMS logs
-
-🎯 What: Phone numbers (PII) were being logged fully unmasked at the INFO level in SMS processing logs, notifications, and logbook entries.
-⚠️ Risk: This violates least privilege logging principles, potentially exposing user data or violating privacy policies.
-🛡️ Solution: Implemented a masking utility that redacts all but the last 4 digits (e.g. +1******7890). INFO logs and user-facing notifications use the masked values. DEBUG logs retain unmasked values for troubleshooting.
