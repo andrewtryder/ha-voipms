@@ -17,4 +17,3 @@ jobs:
       format_check_command: "ruff format --check ."
       lint_command: "ruff check ."
       test_command: "PYTHONPATH=. coverage run -m pytest"
-      coverage_args: "--report-only"
