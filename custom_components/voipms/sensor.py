@@ -12,11 +12,13 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from typing import Any
 
 from .const import DOMAIN
 from .coordinator import VoipmsDataUpdateCoordinator
+from .helpers import voipms_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,13 +58,9 @@ class VoipmsBaseSensor(CoordinatorEntity[VoipmsDataUpdateCoordinator], SensorEnt
         self._entry = entry
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "VoIP.MS",
-            "manufacturer": "VoIP.MS",
-        }
+        return voipms_device_info(self._entry.entry_id)
 
 
 class VoipmsBalanceSensor(VoipmsBaseSensor):
@@ -172,13 +170,9 @@ class VoipmsLastSmsSensor(SensorEntity):
         self._attributes: dict[str, Any] = {}
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "VoIP.MS",
-            "manufacturer": "VoIP.MS",
-        }
+        return voipms_device_info(self._entry.entry_id)
 
     def set_state_from_sms(self, sms: Any) -> None:
         """Set sensor state and attributes from an InboundSms model."""
@@ -217,13 +211,9 @@ class VoipmsLastCallSensor(SensorEntity):
         self._attributes: dict[str, Any] = {}
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "VoIP.MS",
-            "manufacturer": "VoIP.MS",
-        }
+        return voipms_device_info(self._entry.entry_id)
 
     def set_state_from_call(self, call: Any) -> None:
         """Set sensor state and attributes from a CallRecord model."""
