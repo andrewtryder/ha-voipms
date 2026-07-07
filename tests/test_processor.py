@@ -254,7 +254,7 @@ async def test_process_inbound_sms_creates_event_logbook_and_notification(
         mock_create.assert_called_once_with(
             hass,
             "Hello, world!",
-            title="SMS from 5559876543",
+            title="SMS from ******6543",
             notification_id="voipms_sms_abc123",
         )
 
@@ -345,7 +345,7 @@ async def test_process_inbound_sms_long_message_truncation(
 
     # Verify logbook contains truncated message
     assert len(captured_logbook) == 1
-    assert "SMS from 5559876543 to 5551234567" in captured_logbook[0]["message"]
+    assert "SMS from ******6543 to ******4567" in captured_logbook[0]["message"]
     assert "AAAA" in captured_logbook[0]["message"]
     assert "..." in captured_logbook[0]["message"]
 

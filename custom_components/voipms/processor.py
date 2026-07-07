@@ -17,6 +17,7 @@ from .const import (
     EVENT_INBOUND_SMS,
     EVENT_OUTBOUND_CALL,
 )
+from .helpers import mask_phone_number
 from .models import CallRecord, InboundSms
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,7 +50,9 @@ def _log_inbound_sms_to_logbook(
 
     logbook_data = {
         "name": LOGBOOK_NAME,
-        "message": (f"SMS from {sms.sender} to {sms.recipient}: {message_text}"),
+        "message": (
+            f"SMS from {mask_phone_number(sms.sender)} to {mask_phone_number(sms.recipient)}: {message_text}"
+        ),
         "domain": DOMAIN,
     }
     entity_id = _get_logbook_entity_id(hass, entry, "balance")
@@ -93,7 +96,7 @@ def _create_inbound_sms_notification(hass: HomeAssistant, sms: InboundSms) -> No
     persistent_notification.async_create(
         hass,
         sms.message,
-        title=f"SMS from {sms.sender}",
+        title=f"SMS from {mask_phone_number(sms.sender)}",
         notification_id=notification_id,
     )
 
@@ -145,10 +148,18 @@ async def process_inbound_sms(
     hass: HomeAssistant, entry: ConfigEntry, sms: InboundSms
 ) -> None:
     """Process an inbound SMS message from VoIP.ms."""
-    _LOGGER.info(
-        "Processing inbound SMS: sender=%s, recipient=%s, message_id=%s",
+    # Log unmasked numbers at DEBUG level for troubleshooting
+    _LOGGER.debug(
+        "Processing inbound SMS (unmasked): sender=%s, recipient=%s, message_id=%s",
         sms.sender,
         sms.recipient,
+        sms.message_id,
+    )
+    # Log masked numbers at INFO level to protect PII
+    _LOGGER.info(
+        "Processing inbound SMS: sender=%s, recipient=%s, message_id=%s",
+        mask_phone_number(sms.sender),
+        mask_phone_number(sms.recipient),
         sms.message_id,
     )
 
