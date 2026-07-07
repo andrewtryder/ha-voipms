@@ -38,7 +38,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
 
-    def test_connection():
+    def test_connection() -> dict[str, Any]:
         client = VoipMsRestClient(
             data[CONF_USERNAME],
             data[CONF_PASSWORD],
