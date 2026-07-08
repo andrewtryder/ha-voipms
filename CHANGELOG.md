@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.1](https://github.com/andrewtryder/ha-voipms/compare/v1.7.0...v1.7.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* **coordinator:** log ValueError when parsing call records ([#37](https://github.com/andrewtryder/ha-voipms/issues/37)) ([70914fa](https://github.com/andrewtryder/ha-voipms/commit/70914fa6660d87ec9fff868f04c45b37c081bfbd))
+* **processor:** mask sensitive phone numbers in SMS logs ([#38](https://github.com/andrewtryder/ha-voipms/issues/38)) ([cfb9e80](https://github.com/andrewtryder/ha-voipms/commit/cfb9e80c9e08cab9f83565b3678b999f95fae30d))
+
 ## [1.7.0](https://github.com/andrewtryder/ha-voipms/compare/v1.6.0...v1.7.0) (2026-06-26)
 
 
