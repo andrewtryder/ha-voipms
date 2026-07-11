@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import VoipMsRestClient
 from .const import CONF_DEFAULT_DID, DOMAIN
+from .entity import VoipmsEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ async def async_setup_entry(
     )
 
 
-class VoipmsNotifyEntity(NotifyEntity):
+class VoipmsNotifyEntity(VoipmsEntity, NotifyEntity):
     """Representation of a VoIP.MS SMS notify entity."""
 
     _attr_has_entity_name = True
@@ -63,7 +64,7 @@ class VoipmsNotifyEntity(NotifyEntity):
 
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the notify entity."""
-        self._entry = entry
+        VoipmsEntity.__init__(self, entry)
         self._attr_unique_id = f"{entry.entry_id}_sms"
         self._client = VoipMsRestClient(
             entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD]
@@ -74,15 +75,6 @@ class VoipmsNotifyEntity(NotifyEntity):
     def default_did(self) -> str:
         """Return the default DID."""
         return self._default_did
-
-    @property
-    def device_info(self) -> dict[str, Any]:
-        """Return device information linking this entity to the integration."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "VoIP.MS",
-            "manufacturer": "VoIP.MS",
-        }
 
     async def async_send_message(self, message: str = "", **kwargs: Any) -> None:
         """Send a message via VoIP.MS SMS.

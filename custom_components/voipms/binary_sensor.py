@@ -16,6 +16,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import VoipmsDataUpdateCoordinator
+from .entity import VoipmsEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ async def async_setup_entry(
 
 
 class VoipmsRegistrationBinarySensor(
-    CoordinatorEntity[VoipmsDataUpdateCoordinator], BinarySensorEntity
+    CoordinatorEntity[VoipmsDataUpdateCoordinator], VoipmsEntity, BinarySensorEntity
 ):
     """Binary sensor that shows whether a SIP subaccount is registered."""
 
@@ -55,8 +56,8 @@ class VoipmsRegistrationBinarySensor(
         reg_data: dict[str, Any],
     ) -> None:
         """Initialize the registration binary sensor."""
-        super().__init__(coordinator)
-        self._entry = entry
+        CoordinatorEntity.__init__(self, coordinator)
+        VoipmsEntity.__init__(self, entry)
         self._account_name = account_name
         self._attr_unique_id = f"{entry.entry_id}_registration_{account_name}"
         self._attr_name = f"SIP {account_name}"
@@ -66,15 +67,6 @@ class VoipmsRegistrationBinarySensor(
             "device_type": reg_data.get("device_type", ""),
             "callerid_number": reg_data.get("callerid_number", ""),
             "protocol": reg_data.get("protocol", ""),
-        }
-
-    @property
-    def device_info(self):
-        """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "VoIP.MS",
-            "manufacturer": "VoIP.MS",
         }
 
     @property
