@@ -73,7 +73,7 @@ async def test_set_sms_receives_callback_url_template(
     mock_voipms_client.set_sms.assert_called_once()
     call_kwargs = mock_voipms_client.set_sms.call_args.kwargs
     expected_url = build_webhook_callback_url(
-        "http://example.com", f"voipms_{entry.unique_id}"
+        "http://example.com", f"voipms_{entry.entry_id}"
     )
     assert call_kwargs["url_callback"] == expected_url
     assert "to={TO}" in call_kwargs["url_callback"]
@@ -105,7 +105,7 @@ async def test_inbound_sms_webhook_fires_event_on_get(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    webhook_id = f"voipms_{entry.unique_id}"
+    webhook_id = f"voipms_{entry.entry_id}"
     request = MockRequest(
         content=b"",
         mock_source="test",
@@ -151,7 +151,7 @@ async def test_inbound_sms_webhook_writes_logbook_entry(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    webhook_id = f"voipms_{entry.unique_id}"
+    webhook_id = f"voipms_{entry.entry_id}"
     request = MockRequest(
         content=b"",
         mock_source="test",
@@ -188,7 +188,7 @@ async def test_inbound_sms_webhook_creates_persistent_notification(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    webhook_id = f"voipms_{entry.unique_id}"
+    webhook_id = f"voipms_{entry.entry_id}"
     request = MockRequest(
         content=b"",
         mock_source="test",
@@ -200,7 +200,53 @@ async def test_inbound_sms_webhook_creates_persistent_notification(
     await hass.async_block_till_done()
 
     notifications = _async_get_or_create_notifications(hass)
-    expected_id = f"voipms_{entry.unique_id}_sms_42"
+    expected_id = f"voipms_{entry.entry_id}_sms_42"
     assert expected_id in notifications
     assert notifications[expected_id]["message"] == "hello"
     assert notifications[expected_id]["title"] == "SMS from ******6543"
+
+
+async def test_inbound_sms_webhook_deduplication(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test GET webhook request ignores duplicate messages."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+
+    def capture_event(event):
+        events.append(event.data)
+
+    hass.bus.async_listen(EVENT_INBOUND_SMS, capture_event)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 200
+    assert len(events) == 1
+
+    # Second request with the same ID should be ignored (200 OK, but no event)
+    response2 = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response2.status == 200
+    assert len(events) == 1

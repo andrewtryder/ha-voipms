@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+from collections import OrderedDict
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
@@ -32,6 +34,7 @@ class VoipmsData:
     """Runtime data for the VoIP.ms integration."""
 
     coordinator: VoipmsDataUpdateCoordinator
+    processed_sms_ids: OrderedDict[str, None]
     last_sms_entity: Any = None
     last_call_entity: Any = None
 
@@ -80,7 +83,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: VoipmsConfigEntry) -> bo
     coordinator = VoipmsDataUpdateCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
 
-    entry.runtime_data = VoipmsData(coordinator=coordinator)
+    entry.runtime_data = VoipmsData(
+        coordinator=coordinator,
+        processed_sms_ids=OrderedDict(),
+    )
 
     async def async_send_sms_service(call: ServiceCall) -> None:
         """Handle the voipms.send_sms service call."""
@@ -105,21 +111,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: VoipmsConfigEntry) -> bo
     )
 
     if hass.http is not None:
-        if hasattr(hass.http, "async_register_static_paths"):
-            from homeassistant.components.http import StaticPathConfig
-            await hass.http.async_register_static_paths([
+        from homeassistant.components.http import StaticPathConfig
+
+        await hass.http.async_register_static_paths(
+            [
                 StaticPathConfig(
                     "/voipms-frontend",
-                    hass.config.path("custom_components/voipms/frontend/dist"),
+                    str(Path(__file__).parent / "frontend"),
                     cache_headers=False,
                 )
-            ])
-        else:
-            hass.http.register_static_path(
-                "/voipms-frontend",
-                hass.config.path("custom_components/voipms/frontend/dist"),
-                cache_headers=False,
-            )
+            ]
+        )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await async_register_inbound_sms_webhook(hass, entry)

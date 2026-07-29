@@ -165,9 +165,7 @@ class CallRecord:
         disposition = str(record.get(CallRecord.FIELD_DISPOSITION, ""))
         unique_id = record.get(CallRecord.FIELD_UNIQUE_ID)
         if not isinstance(unique_id, str) or not unique_id.strip():
-            unique_id = (
-                f"{timestamp}|{caller_id}|{destination}|{description}|{duration}|{occurrence}"
-            )
+            unique_id = f"{timestamp}|{caller_id}|{destination}|{description}|{duration}|{occurrence}"
 
         direction = record.get("direction")
         if not direction:

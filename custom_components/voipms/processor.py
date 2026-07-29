@@ -97,7 +97,7 @@ def _create_inbound_sms_notification(
 ) -> None:
     """Create a persistent notification for an inbound SMS."""
     notification_id = (
-        f"voipms_{entry.unique_id}_sms_{sms.message_id}" if sms.message_id else None
+        f"voipms_{entry.entry_id}_sms_{sms.message_id}" if sms.message_id else None
     )
 
     persistent_notification.async_create(
@@ -115,7 +115,7 @@ def _create_call_notification(
     direction_label = "Inbound" if call.direction == DIRECTION_INBOUND else "Outbound"
     duration_text = f"{call.duration}s" if call.duration else "unknown duration"
     disposition_text = call.disposition or "unknown disposition"
-    notification_id = f"voipms_{entry.unique_id}_call_{call.unique_id}"
+    notification_id = f"voipms_{entry.entry_id}_call_{call.unique_id}"
 
     persistent_notification.async_create(
         hass,
@@ -157,13 +157,6 @@ async def process_inbound_sms(
     hass: HomeAssistant, entry: VoipmsConfigEntry, sms: InboundSms
 ) -> None:
     """Process an inbound SMS message from VoIP.ms."""
-    # Log unmasked numbers at DEBUG level for troubleshooting
-    _LOGGER.debug(
-        "Processing inbound SMS (unmasked): sender=%s, recipient=%s, message_id=%s",
-        sms.sender,
-        sms.recipient,
-        sms.message_id,
-    )
     # Log masked numbers at INFO level to protect PII
     _LOGGER.info(
         "Processing inbound SMS: sender=%s, recipient=%s, message_id=%s",
@@ -197,8 +190,8 @@ async def process_call(
     _LOGGER.info(
         "Processing %s call: caller=%s, destination=%s, unique_id=%s",
         call.direction,
-        call.caller_id,
-        call.destination,
+        mask_phone_number(call.caller_id),
+        mask_phone_number(call.destination),
         call.unique_id,
     )
 

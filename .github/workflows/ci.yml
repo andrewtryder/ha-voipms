@@ -1,4 +1,4 @@
-name: Run Tests
+name: CI
 
 on:
   push:
@@ -26,8 +26,8 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-  tests:
-    name: Run Pytest
+  python-ci:
+    name: Run Pytest & Linting
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -49,6 +49,10 @@ jobs:
           if [ "${{ matrix.ha-version }}" != "latest" ]; then
             uv pip install --system homeassistant==${{ matrix.ha-version }}
           fi
+      - name: Check formatting
+        run: ruff format --check .
+      - name: Check linting
+        run: ruff check .
       - name: Run tests and coverage
         run: |
           PYTHONPATH=. coverage run -m pytest tests/

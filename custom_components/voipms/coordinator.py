@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .api import VoipMsApiError, VoipMsRestClient
-from .const import DIRECTION_INBOUND, DOMAIN, UPDATE_INTERVAL
+from .const import DIRECTION_INBOUND, DIRECTION_OUTBOUND, DOMAIN, UPDATE_INTERVAL
 from .models import CallRecord
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,12 +65,18 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             balance_result = self.client.get_balance()
 
-            if balance_result.get("status") == "invalid_credentials":
-                raise ConfigEntryAuthFailed("Invalid credentials for VoIP.ms")
-            elif balance_result.get("status") == "success":
+            status = balance_result.get("status")
+            if status in [
+                "invalid_credentials",
+                "ip_not_enabled",
+                "api_not_enabled",
+                "missing_credentials",
+            ]:
+                raise ConfigEntryAuthFailed(f"Auth failed: {status}")
+            elif status == "success":
                 data["balance"] = self._extract_balance(balance_result.get("balance"))
             else:
-                _LOGGER.warning("Failed to fetch balance: %s", balance_result)
+                raise UpdateFailed(f"Failed to fetch balance: {balance_result}")
 
         except (VoipMsApiError, ValueError) as ex:
             raise UpdateFailed(f"Failed to connect to VoIP.ms: {ex}") from ex
@@ -78,9 +84,15 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             registrations: dict[str, dict[str, Any]] = {}
             subs_result = self.client.get_sub_accounts()
-            if subs_result.get("status") == "invalid_credentials":
-                raise ConfigEntryAuthFailed("Invalid credentials for VoIP.ms")
-            elif subs_result.get("status") == "success":
+            status = subs_result.get("status")
+            if status in [
+                "invalid_credentials",
+                "ip_not_enabled",
+                "api_not_enabled",
+                "missing_credentials",
+            ]:
+                raise ConfigEntryAuthFailed(f"Auth failed: {status}")
+            elif status == "success":
                 subaccounts = subs_result.get("subaccounts", [])
                 if isinstance(subaccounts, dict):
                     subaccounts = [subaccounts]
@@ -93,9 +105,17 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                             reg_result = self.client.get_registration_status(
                                 account=account_name
                             )
-                            if reg_result.get("status") == "invalid_credentials":
-                                raise ConfigEntryAuthFailed(
-                                    "Invalid credentials for VoIP.ms"
+                            status = reg_result.get("status")
+                            if status in [
+                                "invalid_credentials",
+                                "ip_not_enabled",
+                                "api_not_enabled",
+                                "missing_credentials",
+                            ]:
+                                raise ConfigEntryAuthFailed(f"Auth failed: {status}")
+                            if status != "success":
+                                raise UpdateFailed(
+                                    f"Failed to fetch registration for {account_name}"
                                 )
                             registrations[account_name] = {
                                 "registered": (reg_result.get("registered") == "yes"),
@@ -115,16 +135,24 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                             if account_name in old_regs:
                                 registrations[account_name] = old_regs[account_name]
                     data["registrations"] = registrations
+            elif status == "no_subaccounts":
+                pass
             else:
-                _LOGGER.warning("Failed to fetch subaccounts: %s", subs_result)
+                raise UpdateFailed(f"Failed to fetch subaccounts: {subs_result}")
         except (VoipMsApiError, ValueError) as ex:
             _LOGGER.warning("Error fetching subaccounts: %s", ex)
 
         try:
             vm_result = self.client.get_voicemails()
-            if vm_result.get("status") == "invalid_credentials":
-                raise ConfigEntryAuthFailed("Invalid credentials for VoIP.ms")
-            elif vm_result.get("status") == "success":
+            status = vm_result.get("status")
+            if status in [
+                "invalid_credentials",
+                "ip_not_enabled",
+                "api_not_enabled",
+                "missing_credentials",
+            ]:
+                raise ConfigEntryAuthFailed(f"Auth failed: {status}")
+            elif status == "success":
                 mailboxes = vm_result.get("voicemails", [])
                 if isinstance(mailboxes, dict):
                     mailboxes = [mailboxes]
@@ -140,32 +168,35 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                             msg_result = self.client.get_voicemail_messages(
                                 mailbox=mailbox_id
                             )
-                            if msg_result.get("status") == "invalid_credentials":
-                                raise ConfigEntryAuthFailed(
-                                    "Invalid credentials for VoIP.ms"
-                                )
-                            if msg_result.get("status") == "success":
+                            status = msg_result.get("status")
+                            if status in [
+                                "invalid_credentials",
+                                "ip_not_enabled",
+                                "api_not_enabled",
+                                "missing_credentials",
+                            ]:
+                                raise ConfigEntryAuthFailed(f"Auth failed: {status}")
+                            if status == "success":
                                 messages = msg_result.get("messages", [])
                                 if isinstance(messages, dict):
                                     messages = [messages]
                                 if isinstance(messages, list):
                                     total_messages += len(messages)
+                            else:
+                                raise UpdateFailed(
+                                    f"Failed to fetch messages for {mailbox_id}"
+                                )
                         except (VoipMsApiError, ValueError) as ex:
-                            _LOGGER.warning(
-                                "Error fetching messages for mailbox %s: %s",
-                                mailbox_id,
-                                ex,
-                            )
-                            # Fallback to previous count if an individual mailbox fails
-                            # This is a bit coarse but prevents dropping to 0 on partial failure
-                            total_messages = data.get("voicemail_count", 0)
+                            raise UpdateFailed(
+                                f"Error fetching messages for mailbox {mailbox_id}: {ex}"
+                            ) from ex
                     data["voicemail_count"] = total_messages
             elif vm_result.get("status") == "no_voicemails":
                 data["voicemail_count"] = 0
             else:
-                _LOGGER.warning("Failed to fetch voicemails: %s", vm_result)
+                raise UpdateFailed(f"Failed to fetch voicemails: {vm_result}")
         except (VoipMsApiError, ValueError) as ex:
-            _LOGGER.warning("Error fetching voicemails: %s", ex)
+            raise UpdateFailed(f"Error fetching voicemails: {ex}") from ex
 
         try:
             now_utc = dt_util.utcnow()
@@ -181,9 +212,15 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                 timezone=0,
             )
 
-            if cdr_result.get("status") == "invalid_credentials":
-                raise ConfigEntryAuthFailed("Invalid credentials for VoIP.ms")
-            elif cdr_result.get("status") == "success":
+            status = cdr_result.get("status")
+            if status in [
+                "invalid_credentials",
+                "ip_not_enabled",
+                "api_not_enabled",
+                "missing_credentials",
+            ]:
+                raise ConfigEntryAuthFailed(f"Auth failed: {status}")
+            elif status == "success":
                 cdrs = cdr_result.get("cdr", [])
                 if isinstance(cdrs, dict):
                     cdrs = [cdrs]
@@ -218,22 +255,30 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
 
                         if call_record.direction == DIRECTION_INBOUND:
                             inbound_count += 1
-                        else:
+                        elif call_record.direction == DIRECTION_OUTBOUND:
                             outbound_count += 1
+                        else:
+                            # Ignore unknown call directions for counts
+                            pass
 
                         if call_record.unique_id in self._seen_call_ids:
                             continue
                         self._seen_call_ids[call_record.unique_id] = call_date
-                        
+
                         # Prune seen calls older than 72 hours
                         prune_threshold = now_utc - timedelta(hours=72)
                         stale_keys = [
-                            k for k, v in self._seen_call_ids.items() if v < prune_threshold
+                            k
+                            for k, v in self._seen_call_ids.items()
+                            if v < prune_threshold
                         ]
                         for k in stale_keys:
                             self._seen_call_ids.pop(k, None)
 
-                        if self._calls_initialized:
+                        if self._calls_initialized and call_record.direction in (
+                            DIRECTION_INBOUND,
+                            DIRECTION_OUTBOUND,
+                        ):
                             new_calls.append(call_record)
                     except ValueError as ex:
                         _LOGGER.warning("Failed to parse call record: %s", ex)
@@ -249,9 +294,9 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                 data["inbound_calls_24h"] = 0
                 data["outbound_calls_24h"] = 0
             else:
-                _LOGGER.warning("Failed to fetch CDRs: %s", cdr_result)
+                raise UpdateFailed(f"Failed to fetch CDRs: {cdr_result}")
         except (VoipMsApiError, ValueError) as ex:
-            _LOGGER.error("Error fetching CDR: %s", ex)
+            raise UpdateFailed(f"Error fetching CDR: {ex}") from ex
 
         return data
 

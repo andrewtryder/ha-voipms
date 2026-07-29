@@ -18,7 +18,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 if TYPE_CHECKING:
     from .__init__ import VoipmsConfigEntry
 from .coordinator import VoipmsDataUpdateCoordinator
-from .helpers import voipms_device_info
+from .helpers import voipms_device_info, mask_phone_number
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -178,9 +178,8 @@ class VoipmsLastSmsSensor(SensorEntity):
         """Set sensor state and attributes from an InboundSms model."""
         self._state = sms.timestamp
         self._attributes = {
-            "sender": sms.sender,
-            "message": sms.message,
-            "recipient": sms.recipient,
+            "sender": mask_phone_number(sms.sender),
+            "recipient": mask_phone_number(sms.recipient),
             "timestamp": sms.timestamp,
             "message_id": sms.message_id,
         }
@@ -219,8 +218,8 @@ class VoipmsLastCallSensor(SensorEntity):
         """Set sensor state and attributes from a CallRecord model."""
         self._state = call.timestamp
         self._attributes = {
-            "caller_id": call.caller_id,
-            "destination": call.destination,
+            "caller_id": mask_phone_number(call.caller_id),
+            "destination": mask_phone_number(call.destination),
             "description": call.description,
             "duration": call.duration,
             "disposition": call.disposition,

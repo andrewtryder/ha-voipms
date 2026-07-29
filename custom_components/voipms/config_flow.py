@@ -30,6 +30,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_USERNAME): str,
         vol.Required(CONF_PASSWORD): str,
         vol.Required(CONF_DEFAULT_DID): str,
+        vol.Optional("manage_webhook", default=True): bool,
     }
 )
 
@@ -64,9 +65,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    def __init__(self) -> None:
-        """Initialize the config flow."""
-        self.entry: config_entries.ConfigEntry | None = None
+    VERSION = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -87,7 +86,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
-                return self.async_create_entry(title=info["title"], data=user_input)
+                manage_webhook = user_input.pop("manage_webhook", True)
+                return self.async_create_entry(
+                    title=info["title"],
+                    data=user_input,
+                    options={"manage_webhook": manage_webhook},
+                )
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
@@ -95,7 +99,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(self, entry_data: dict[str, Any]) -> FlowResult:
         """Handle initiation of re-authentication with VoIP.ms."""
-        self.entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
@@ -103,8 +106,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle re-authentication."""
         errors: dict[str, str] = {}
-        if user_input is not None and self.entry is not None:
-            data = {**self.entry.data, **user_input}
+        entry = self._get_reauth_entry()
+        if user_input is not None:
+            data = {**entry.data, **user_input}
             try:
                 await validate_input(self.hass, data)
             except CannotConnect:
@@ -115,9 +119,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
-                self.hass.config_entries.async_update_entry(self.entry, data=data)
-                await self.hass.config_entries.async_reload(self.entry.entry_id)
-                return self.async_abort(reason="reauth_successful")
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates=user_input,
+                    reason="reauth_successful",
+                )
 
         return self.async_show_form(
             step_id="reauth_confirm",
@@ -137,11 +143,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle reconfiguration of the integration."""
-        self.entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        entry = self._get_reconfigure_entry()
 
         errors = {}
-        if user_input is not None and self.entry:
-            data = {**self.entry.data, **user_input}
+        if user_input is not None:
+            data = {**entry.data, **user_input}
             try:
                 await validate_input(self.hass, data)
             except CannotConnect:
@@ -152,29 +158,30 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
+                manage_webhook = user_input.pop(
+                    "manage_webhook", entry.options.get("manage_webhook", True)
+                )
                 return self.async_update_reload_and_abort(
-                    self.entry,
-                    data=data,
+                    entry,
+                    data_updates=user_input,
+                    options={"manage_webhook": manage_webhook},
                     reason="reconfigure_successful",
                 )
 
-        schema = (
-            vol.Schema(
-                {
-                    vol.Required(
-                        CONF_USERNAME, default=self.entry.data.get(CONF_USERNAME, "")
-                    ): str,
-                    vol.Required(
-                        CONF_PASSWORD, default=self.entry.data.get(CONF_PASSWORD, "")
-                    ): str,
-                    vol.Required(
-                        CONF_DEFAULT_DID,
-                        default=self.entry.data.get(CONF_DEFAULT_DID, ""),
-                    ): str,
-                }
-            )
-            if self.entry
-            else STEP_USER_DATA_SCHEMA
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_PASSWORD, default=entry.data.get(CONF_PASSWORD, "")
+                ): str,
+                vol.Required(
+                    CONF_DEFAULT_DID,
+                    default=entry.data.get(CONF_DEFAULT_DID, ""),
+                ): str,
+                vol.Optional(
+                    "manage_webhook",
+                    default=entry.options.get("manage_webhook", True),
+                ): bool,
+            }
         )
 
         return self.async_show_form(
@@ -192,7 +199,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         try:
             self.config_entry = config_entry
         except AttributeError:
-            pass # Provided by base class in HA 2024.12+
+            pass  # Provided by base class in HA 2024.12+
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

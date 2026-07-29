@@ -102,8 +102,9 @@ async def test_coordinator_subsystem_degradation(
     await coordinator.async_refresh()
     await hass.async_block_till_done()
 
-    # The balance updated, but the voicemail count should be retained
-    assert coordinator.data["balance"] == 9.50
+    # The entire refresh should fail, preserving ALL previous data
+    assert not coordinator.last_update_success
+    assert coordinator.data["balance"] == 10.50
     assert coordinator.data["voicemail_count"] == 2
 
 

@@ -38,7 +38,7 @@ async def test_setup_unload_entry(hass: HomeAssistant, mock_voipms_client) -> No
     mock_voipms_client.set_sms.assert_called_once()
     call_kwargs = mock_voipms_client.set_sms.call_args.kwargs
     expected_url = build_webhook_callback_url(
-        "http://example.com", f"voipms_{entry.unique_id}"
+        "http://example.com", f"voipms_{entry.entry_id}"
     )
     assert call_kwargs["url_callback"] == expected_url
 
@@ -78,7 +78,7 @@ async def test_inbound_sms_event_creates_persistent_notification(
     await hass.async_block_till_done()
 
     notifications = _async_get_or_create_notifications(hass)
-    expected_id = f"voipms_{entry.unique_id}_sms_42"
+    expected_id = f"voipms_{entry.entry_id}_sms_42"
     assert expected_id in notifications
     assert notifications[expected_id]["message"] == "hello"
     assert notifications[expected_id]["title"] == "SMS from ******6543"

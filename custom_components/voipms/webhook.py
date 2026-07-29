@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from collections import OrderedDict
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import web
@@ -20,8 +19,6 @@ from .models import InboundSms, InboundSmsValidationError
 from .processor import process_inbound_sms
 
 _LOGGER = logging.getLogger(__name__)
-
-_PROCESSED_SMS_IDS: dict[str, OrderedDict[str, None]] = {}
 MAX_PROCESSED_IDS = 1000
 
 
@@ -29,10 +26,9 @@ async def async_register_inbound_sms_webhook(
     hass: HomeAssistant, entry: VoipmsConfigEntry
 ) -> None:
     """Register the inbound SMS webhook with VoIP.ms."""
-    webhook_id = f"voipms_{entry.unique_id}"
+    webhook_id = f"voipms_{entry.entry_id}"
 
-    _PROCESSED_SMS_IDS.setdefault(entry.unique_id, OrderedDict())
-    processed_cache = _PROCESSED_SMS_IDS[entry.unique_id]
+    processed_cache = entry.runtime_data.processed_sms_ids
 
     async def webhook_handler(
         hass: HomeAssistant, webhook_id: str, request: web.Request
@@ -87,12 +83,12 @@ async def async_register_inbound_sms_webhook(
                 )
                 return web.Response(text="ok", status=200)
 
+            # Process the validated SMS
+            await process_inbound_sms(hass, entry, sms)
+
             processed_cache[sms.message_id] = None
             if len(processed_cache) > MAX_PROCESSED_IDS:
                 processed_cache.popitem(last=False)
-
-            # Process the validated SMS
-            await process_inbound_sms(hass, entry, sms)
 
             return web.Response(text="ok", status=200)
         except Exception as err:  # noqa: BLE001
@@ -155,6 +151,5 @@ async def async_unregister_inbound_sms_webhook(
     hass: HomeAssistant, entry: VoipmsConfigEntry
 ) -> None:
     """Unregister the inbound SMS webhook."""
-    webhook_id = f"voipms_{entry.unique_id}"
+    webhook_id = f"voipms_{entry.entry_id}"
     async_unregister(hass, webhook_id)
-    _PROCESSED_SMS_IDS.pop(entry.unique_id, None)
