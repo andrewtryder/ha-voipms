@@ -1,7 +1,6 @@
 import asyncio
 import os
 import aiohttp
-import json
 import sys
 
 HA_URL = "http://localhost:8123"
