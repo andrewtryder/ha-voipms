@@ -11,3 +11,4 @@ htmlcov/
 
 # Local Home Assistant config (docker-compose)
 config/
+artifacts/

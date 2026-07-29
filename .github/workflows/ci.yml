@@ -10,10 +10,19 @@ permissions:
 
 jobs:
   python-ci:
-    uses: andrewtryder/repo-standards/.github/workflows/python-ci.reusable.yml@v1.4.0
-    with:
-      python_version: "3.12"
-      install_command: "python -m pip install -r requirements.txt -r requirements-dev.txt"
-      format_check_command: "ruff format --check ."
-      lint_command: "ruff check ."
-      test_command: "PYTHONPATH=. coverage run -m pytest"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - name: Check formatting
+        run: ruff format --check .
+      - name: Check linting
+        run: ruff check .
+      - name: Run tests
+        run: PYTHONPATH=. coverage run -m pytest
