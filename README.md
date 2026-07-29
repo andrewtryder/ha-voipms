@@ -180,7 +180,9 @@ logger:
 Install dependencies:
 
 ```bash
-python -m pip install -r requirements.txt -r requirements-dev.txt
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements-dev.txt
 ```
 
 Run checks:
