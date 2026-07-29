@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+if TYPE_CHECKING:
+    from .__init__ import VoipmsConfigEntry
 from .coordinator import VoipmsDataUpdateCoordinator
 from .helpers import voipms_device_info
 
@@ -24,11 +24,11 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: VoipmsConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up VoIP.ms binary sensors for SIP registration status."""
-    coordinator: VoipmsDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: VoipmsDataUpdateCoordinator = entry.runtime_data.coordinator
 
     registrations: dict[str, dict[str, Any]] = (
         coordinator.data.get("registrations", {}) if coordinator.data else {}
@@ -52,7 +52,7 @@ class VoipmsRegistrationBinarySensor(
     def __init__(
         self,
         coordinator: VoipmsDataUpdateCoordinator,
-        entry: ConfigEntry,
+        entry: VoipmsConfigEntry,
         account_name: str,
         reg_data: dict[str, Any],
     ) -> None:
@@ -60,7 +60,7 @@ class VoipmsRegistrationBinarySensor(
         super().__init__(coordinator)
         self._entry = entry
         self._account_name = account_name
-        self._attr_unique_id = f"{entry.entry_id}_registration_{account_name}"
+        self._attr_unique_id = f"{entry.unique_id}_registration_{account_name}"
         self._attr_name = f"SIP {account_name}"
         self._attr_is_on = reg_data.get("registered", False)
         self._attr_extra_state_attributes = {
@@ -73,7 +73,7 @@ class VoipmsRegistrationBinarySensor(
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        return voipms_device_info(self._entry.entry_id)
+        return voipms_device_info(self._entry.unique_id)
 
     @property
     def is_on(self) -> bool:

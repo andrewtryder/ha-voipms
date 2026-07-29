@@ -3,29 +3,36 @@
 from __future__ import annotations
 
 import logging
-
-from typing import Any
+from collections import OrderedDict
+from typing import TYPE_CHECKING, Any
 
 from aiohttp import web
-from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
+from aiohttp.hdrs import METH_GET, METH_POST
 from homeassistant.components.webhook import async_unregister
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
+if TYPE_CHECKING:
+    from .__init__ import VoipmsConfigEntry
 from .api import VoipMsRestClient
-from .const import DOMAIN, build_webhook_callback_url, CONF_DEFAULT_DID
+from .const import CONF_DEFAULT_DID, DOMAIN, build_webhook_callback_url
 from .models import InboundSms, InboundSmsValidationError
 from .processor import process_inbound_sms
 
 _LOGGER = logging.getLogger(__name__)
 
+_PROCESSED_SMS_IDS: dict[str, OrderedDict[str, None]] = {}
+MAX_PROCESSED_IDS = 1000
+
 
 async def async_register_inbound_sms_webhook(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: VoipmsConfigEntry
 ) -> None:
     """Register the inbound SMS webhook with VoIP.ms."""
-    webhook_id = f"voipms_{entry.entry_id}"
+    webhook_id = f"voipms_{entry.unique_id}"
+
+    _PROCESSED_SMS_IDS.setdefault(entry.unique_id, OrderedDict())
+    processed_cache = _PROCESSED_SMS_IDS[entry.unique_id]
 
     async def webhook_handler(
         hass: HomeAssistant, webhook_id: str, request: web.Request
@@ -65,11 +72,30 @@ async def async_register_inbound_sms_webhook(
                 # Acknowledge with 200 OK to prevent VoIP.ms retries
                 return web.Response(text="ok", status=200)
 
+            # Deduplicate by message ID
+            if sms.message_id in processed_cache:
+                _LOGGER.info("Duplicate SMS message_id=%s, skipping", sms.message_id)
+                return web.Response(text="ok", status=200)
+
+            # Validate recipient DID
+            configured_did = entry.data.get(CONF_DEFAULT_DID)
+            if configured_did and sms.recipient != configured_did:
+                _LOGGER.warning(
+                    "SMS recipient %s does not match configured DID %s",
+                    sms.recipient,
+                    configured_did,
+                )
+                return web.Response(text="ok", status=200)
+
+            processed_cache[sms.message_id] = None
+            if len(processed_cache) > MAX_PROCESSED_IDS:
+                processed_cache.popitem(last=False)
+
             # Process the validated SMS
             await process_inbound_sms(hass, entry, sms)
 
             return web.Response(text="ok", status=200)
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             _LOGGER.error("Error handling VoIP.ms webhook: %s", err)
             return web.Response(status=500)
 
@@ -81,35 +107,54 @@ async def async_register_inbound_sms_webhook(
         "VoIP.ms SMS",
         webhook_id,
         webhook_handler,
-        allowed_methods=(METH_GET, METH_POST, METH_PUT),
+        allowed_methods=(METH_GET, METH_POST),
     )
 
     # Register callback with VoIP.ms API
-    try:
-        external_url = voipms.get_url(hass, prefer_external=True, allow_cloud=True)
-        webhook_url = build_webhook_callback_url(external_url, webhook_id)
-        did = entry.data.get(CONF_DEFAULT_DID)
-        if did:
+    if entry.options.get("manage_webhook", True):
+        try:
+            external_url = voipms.get_url(hass, prefer_external=True, allow_cloud=True)
+            webhook_url = build_webhook_callback_url(external_url, webhook_id)
+            did = entry.data.get(CONF_DEFAULT_DID)
+            if did:
 
-            def register_webhook() -> dict[str, Any]:
-                client = VoipMsRestClient(
-                    entry.data[CONF_USERNAME],
-                    entry.data[CONF_PASSWORD],
-                )
-                return client.set_sms(did=did, enable=1, url_callback=webhook_url)
+                def register_webhook() -> dict[str, Any]:
+                    client = VoipMsRestClient(
+                        entry.data[CONF_USERNAME],
+                        entry.data[CONF_PASSWORD],
+                    )
+                    return client.set_sms(did=did, enable=1, url_callback=webhook_url)
 
-            result = await hass.async_add_executor_job(register_webhook)
-            _LOGGER.info("Registered VoIP.ms webhook %s: %s", webhook_url, result)
-    except Exception as ex:
-        _LOGGER.warning(
-            "Failed to register webhook with VoIP.ms. You may need to configure it manually. Error: %s",
-            ex,
-        )
+                result = await hass.async_add_executor_job(register_webhook)
+
+                if result.get("status") != "success":
+                    from homeassistant.helpers import issue_registry as ir
+
+                    ir.async_create_issue(
+                        hass,
+                        DOMAIN,
+                        "webhook_registration_failed",
+                        is_fixable=False,
+                        severity=ir.IssueSeverity.WARNING,
+                        translation_key="webhook_registration_failed",
+                        translation_placeholders={
+                            "status": result.get("status", "unknown")
+                        },
+                    )
+                    _LOGGER.warning("VoIP.ms webhook registration failed: %s", result)
+                else:
+                    _LOGGER.info("Registered VoIP.ms webhook (masked): %s", result)
+        except Exception as ex:  # noqa: BLE001
+            _LOGGER.warning(
+                "Failed to register webhook with VoIP.ms. You may need to configure it manually. Error: %s",
+                ex,
+            )
 
 
 async def async_unregister_inbound_sms_webhook(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: VoipmsConfigEntry
 ) -> None:
     """Unregister the inbound SMS webhook."""
-    webhook_id = f"voipms_{entry.entry_id}"
+    webhook_id = f"voipms_{entry.unique_id}"
     async_unregister(hass, webhook_id)
+    _PROCESSED_SMS_IDS.pop(entry.unique_id, None)

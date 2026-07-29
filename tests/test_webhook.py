@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
+from aiohttp.hdrs import METH_GET, METH_POST
 from homeassistant.components.persistent_notification import (
     _async_get_or_create_notifications,
 )
@@ -50,7 +50,7 @@ async def test_webhook_registers_with_get_method(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    assert captured["allowed_methods"] == (METH_GET, METH_POST, METH_PUT)
+    assert captured["allowed_methods"] == (METH_GET, METH_POST)
 
 
 async def test_set_sms_receives_callback_url_template(
@@ -73,7 +73,7 @@ async def test_set_sms_receives_callback_url_template(
     mock_voipms_client.set_sms.assert_called_once()
     call_kwargs = mock_voipms_client.set_sms.call_args.kwargs
     expected_url = build_webhook_callback_url(
-        "http://example.com", f"voipms_{entry.entry_id}"
+        "http://example.com", f"voipms_{entry.unique_id}"
     )
     assert call_kwargs["url_callback"] == expected_url
     assert "to={TO}" in call_kwargs["url_callback"]
@@ -105,13 +105,13 @@ async def test_inbound_sms_webhook_fires_event_on_get(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    webhook_id = f"voipms_{entry.entry_id}"
+    webhook_id = f"voipms_{entry.unique_id}"
     request = MockRequest(
         content=b"",
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01",
+        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
     )
     response = await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
@@ -122,8 +122,9 @@ async def test_inbound_sms_webhook_fires_event_on_get(
     assert events[0]["to"] == "5551234567"
     assert events[0]["from"] == "5559876543"
     assert events[0]["message"] == "hello"
-    assert events[0]["id"] == "42"
-    assert events[0]["date"] == "2024-01-01"
+    assert events[0]["date"] == "2024-01-01 12:00:00"
+    assert events[0]["account"] == "test_user"
+    assert events[0]["config_entry_id"] == entry.entry_id
 
 
 async def test_inbound_sms_webhook_writes_logbook_entry(
@@ -150,13 +151,13 @@ async def test_inbound_sms_webhook_writes_logbook_entry(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    webhook_id = f"voipms_{entry.entry_id}"
+    webhook_id = f"voipms_{entry.unique_id}"
     request = MockRequest(
         content=b"",
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01",
+        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
     )
     await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
@@ -187,18 +188,19 @@ async def test_inbound_sms_webhook_creates_persistent_notification(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    webhook_id = f"voipms_{entry.entry_id}"
+    webhook_id = f"voipms_{entry.unique_id}"
     request = MockRequest(
         content=b"",
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01",
+        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
     )
     await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
 
     notifications = _async_get_or_create_notifications(hass)
-    assert "voipms_sms_42" in notifications
-    assert notifications["voipms_sms_42"]["message"] == "hello"
-    assert notifications["voipms_sms_42"]["title"] == "SMS from ******6543"
+    expected_id = f"voipms_{entry.unique_id}_sms_42"
+    assert expected_id in notifications
+    assert notifications[expected_id]["message"] == "hello"
+    assert notifications[expected_id]["title"] == "SMS from ******6543"

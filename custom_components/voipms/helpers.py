@@ -5,10 +5,10 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from .const import DOMAIN
 
 
-def voipms_device_info(entry_id: str) -> DeviceInfo:
+def voipms_device_info(unique_id: str) -> DeviceInfo:
     """Return common device information for VoIP.ms entities."""
     return DeviceInfo(
-        identifiers={(DOMAIN, entry_id)},
+        identifiers={(DOMAIN, unique_id)},
         name="VoIP.MS",
         manufacturer="VoIP.MS",
     )

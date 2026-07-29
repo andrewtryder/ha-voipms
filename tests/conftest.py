@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 pytest_plugins = "pytest_homeassistant_custom_component"
 
 
@@ -53,7 +52,6 @@ def mock_voipms_client():
         "custom_components.voipms.VoipMsRestClient",
         "custom_components.voipms.config_flow.VoipMsRestClient",
         "custom_components.voipms.coordinator.VoipMsRestClient",
-        "custom_components.voipms.notify.VoipMsRestClient",
         "custom_components.voipms.webhook.VoipMsRestClient",
         "custom_components.voipms.api.VoipMsRestClient",
     )

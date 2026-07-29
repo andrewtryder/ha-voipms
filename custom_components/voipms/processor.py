@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from homeassistant.components import persistent_notification
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_USERNAME, EVENT_LOGBOOK_ENTRY
 from homeassistant.core import HomeAssistant
-from homeassistant.const import EVENT_LOGBOOK_ENTRY
 from homeassistant.helpers import entity_registry as er
 
 from .const import (
@@ -17,6 +17,9 @@ from .const import (
     EVENT_INBOUND_SMS,
     EVENT_OUTBOUND_CALL,
 )
+
+if TYPE_CHECKING:
+    from .__init__ import VoipmsConfigEntry
 from .helpers import mask_phone_number
 from .models import CallRecord, InboundSms
 
@@ -27,11 +30,11 @@ MAX_SMS_LOGBOOK_MESSAGE_LEN = 120
 
 
 def _get_logbook_entity_id(
-    hass: HomeAssistant, entry: ConfigEntry, suffix: str
+    hass: HomeAssistant, entry: VoipmsConfigEntry, suffix: str
 ) -> str | None:
     """Return an entity ID for logbook linkage by unique ID suffix."""
     entity_registry = er.async_get(hass)
-    unique_id = f"{entry.entry_id}_{suffix}"
+    unique_id = f"{entry.unique_id}_{suffix}"
     for registry_entry in er.async_entries_for_config_entry(
         entity_registry, entry.entry_id
     ):
@@ -41,7 +44,7 @@ def _get_logbook_entity_id(
 
 
 def _log_inbound_sms_to_logbook(
-    hass: HomeAssistant, entry: ConfigEntry, sms: InboundSms
+    hass: HomeAssistant, entry: VoipmsConfigEntry, sms: InboundSms
 ) -> None:
     """Write an inbound SMS entry to the Home Assistant logbook."""
     message_text = sms.message
@@ -63,7 +66,7 @@ def _log_inbound_sms_to_logbook(
 
 
 def _log_call_to_logbook(
-    hass: HomeAssistant, entry: ConfigEntry, call: CallRecord
+    hass: HomeAssistant, entry: VoipmsConfigEntry, call: CallRecord
 ) -> None:
     """Write a call entry to the Home Assistant logbook."""
     direction_label = "Inbound" if call.direction == DIRECTION_INBOUND else "Outbound"
@@ -89,9 +92,13 @@ def _log_call_to_logbook(
     hass.bus.async_fire(EVENT_LOGBOOK_ENTRY, logbook_data)
 
 
-def _create_inbound_sms_notification(hass: HomeAssistant, sms: InboundSms) -> None:
+def _create_inbound_sms_notification(
+    hass: HomeAssistant, entry: VoipmsConfigEntry, sms: InboundSms
+) -> None:
     """Create a persistent notification for an inbound SMS."""
-    notification_id = f"voipms_sms_{sms.message_id}" if sms.message_id else None
+    notification_id = (
+        f"voipms_{entry.unique_id}_sms_{sms.message_id}" if sms.message_id else None
+    )
 
     persistent_notification.async_create(
         hass,
@@ -101,12 +108,14 @@ def _create_inbound_sms_notification(hass: HomeAssistant, sms: InboundSms) -> No
     )
 
 
-def _create_call_notification(hass: HomeAssistant, call: CallRecord) -> None:
+def _create_call_notification(
+    hass: HomeAssistant, entry: VoipmsConfigEntry, call: CallRecord
+) -> None:
     """Create a persistent notification for a call."""
     direction_label = "Inbound" if call.direction == DIRECTION_INBOUND else "Outbound"
     duration_text = f"{call.duration}s" if call.duration else "unknown duration"
     disposition_text = call.disposition or "unknown disposition"
-    notification_id = f"voipms_call_{call.unique_id}"
+    notification_id = f"voipms_{entry.unique_id}_call_{call.unique_id}"
 
     persistent_notification.async_create(
         hass,
@@ -121,10 +130,10 @@ def _create_call_notification(hass: HomeAssistant, call: CallRecord) -> None:
 
 
 def _notify_last_sms_sensor(
-    hass: HomeAssistant, entry: ConfigEntry, sms: InboundSms
+    hass: HomeAssistant, entry: VoipmsConfigEntry, sms: InboundSms
 ) -> None:
     """Update the last SMS sensor with the most recent message."""
-    entity = hass.data.get(DOMAIN, {}).get(f"{entry.entry_id}_last_sms_entity")
+    entity = getattr(entry.runtime_data, "last_sms_entity", None)
     if entity is None or not hasattr(entity, "set_state_from_sms"):
         _LOGGER.debug("Last SMS sensor not yet created for entry %s", entry.entry_id)
         return
@@ -133,10 +142,10 @@ def _notify_last_sms_sensor(
 
 
 def _notify_last_call_sensor(
-    hass: HomeAssistant, entry: ConfigEntry, call: CallRecord
+    hass: HomeAssistant, entry: VoipmsConfigEntry, call: CallRecord
 ) -> None:
     """Update the last call sensor with the most recent call."""
-    entity = hass.data.get(DOMAIN, {}).get(f"{entry.entry_id}_last_call_entity")
+    entity = getattr(entry.runtime_data, "last_call_entity", None)
     if entity is None or not hasattr(entity, "set_state_from_call"):
         _LOGGER.debug("Last call sensor not yet created for entry %s", entry.entry_id)
         return
@@ -145,7 +154,7 @@ def _notify_last_call_sensor(
 
 
 async def process_inbound_sms(
-    hass: HomeAssistant, entry: ConfigEntry, sms: InboundSms
+    hass: HomeAssistant, entry: VoipmsConfigEntry, sms: InboundSms
 ) -> None:
     """Process an inbound SMS message from VoIP.ms."""
     # Log unmasked numbers at DEBUG level for troubleshooting
@@ -163,16 +172,21 @@ async def process_inbound_sms(
         sms.message_id,
     )
 
-    hass.bus.async_fire(EVENT_INBOUND_SMS, sms.to_event_data())
+    event_data = {
+        **sms.to_event_data(),
+        "account": entry.data.get(CONF_USERNAME, ""),
+        "config_entry_id": entry.entry_id,
+    }
+    hass.bus.async_fire(EVENT_INBOUND_SMS, event_data)
     _log_inbound_sms_to_logbook(hass, entry, sms)
-    _create_inbound_sms_notification(hass, sms)
+    _create_inbound_sms_notification(hass, entry, sms)
     _notify_last_sms_sensor(hass, entry, sms)
 
     _LOGGER.info("Inbound SMS processed: message_id=%s", sms.message_id)
 
 
 async def process_call(
-    hass: HomeAssistant, entry: ConfigEntry, call: CallRecord
+    hass: HomeAssistant, entry: VoipmsConfigEntry, call: CallRecord
 ) -> None:
     """Process a call detail record from VoIP.ms."""
     event = (
@@ -188,9 +202,14 @@ async def process_call(
         call.unique_id,
     )
 
-    hass.bus.async_fire(event, call.to_event_data())
+    event_data = {
+        **call.to_event_data(),
+        "account": entry.data.get(CONF_USERNAME, ""),
+        "config_entry_id": entry.entry_id,
+    }
+    hass.bus.async_fire(event, event_data)
     _log_call_to_logbook(hass, entry, call)
-    _create_call_notification(hass, call)
+    _create_call_notification(hass, entry, call)
     _notify_last_call_sensor(hass, entry, call)
 
     _LOGGER.info("Call processed: unique_id=%s", call.unique_id)

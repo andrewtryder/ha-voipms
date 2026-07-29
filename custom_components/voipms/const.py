@@ -18,6 +18,7 @@ EVENT_OUTBOUND_CALL = "voipms_outbound_call"
 
 DIRECTION_INBOUND = "inbound"
 DIRECTION_OUTBOUND = "outbound"
+DIRECTION_UNKNOWN = "unknown"
 
 WEBHOOK_CALLBACK_QUERY = (
     "to={TO}&from={FROM}&message={MESSAGE}&id={ID}&date={TIMESTAMP}"

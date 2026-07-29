@@ -20,3 +20,8 @@ updates:
       interval: "weekly"
     # Python dependency update strategy is adopted repo-by-repo.
     # Pin groups and open-pull-requests-limit as needed.
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"

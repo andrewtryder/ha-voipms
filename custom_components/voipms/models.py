@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, ClassVar, Mapping
+from datetime import datetime
+from typing import Any, ClassVar
 
-from .const import DIRECTION_INBOUND, DIRECTION_OUTBOUND
+from .const import DIRECTION_INBOUND, DIRECTION_OUTBOUND, DIRECTION_UNKNOWN
 
 
 class InboundSmsValidationError(ValueError):
     """Raised when inbound SMS payload validation fails."""
-
-    pass
 
 
 @dataclass(frozen=True)
@@ -73,6 +73,18 @@ class InboundSms:
                 f"Invalid field types/values in inbound SMS payload: {', '.join(invalid_types)}"
             )
 
+        timestamp_str = payload[InboundSms.FIELD_DATE]
+        try:
+            from homeassistant.util import dt as dt_util
+
+            datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=dt_util.UTC
+            )
+        except ValueError as err:
+            raise InboundSmsValidationError(
+                f"Invalid date format in inbound SMS payload: {timestamp_str}"
+            ) from err
+
         # Map VoIP.ms field names to model fields
         return InboundSms(
             sender=payload[InboundSms.FIELD_FROM],
@@ -128,7 +140,9 @@ class CallRecord:
             or "voicemail" in normalized
         ):
             return DIRECTION_INBOUND
-        return DIRECTION_OUTBOUND
+        if "outbound" in normalized or "outgoing" in normalized:
+            return DIRECTION_OUTBOUND
+        return DIRECTION_UNKNOWN
 
     @staticmethod
     def _is_voicemail_description(description: str) -> bool:
@@ -136,7 +150,9 @@ class CallRecord:
         return "voicemail" in description.lower()
 
     @staticmethod
-    def parse_cdr_record(record: Mapping[str, Any]) -> CallRecord | None:
+    def parse_cdr_record(
+        record: Mapping[str, Any], occurrence: int = 0
+    ) -> CallRecord | None:
         """Parse a VoIP.ms CDR record into a CallRecord."""
         timestamp = record.get(CallRecord.FIELD_DATE)
         if not isinstance(timestamp, str) or not timestamp.strip():
@@ -149,7 +165,13 @@ class CallRecord:
         disposition = str(record.get(CallRecord.FIELD_DISPOSITION, ""))
         unique_id = record.get(CallRecord.FIELD_UNIQUE_ID)
         if not isinstance(unique_id, str) or not unique_id.strip():
-            unique_id = f"{timestamp}|{caller_id}|{destination}|{description}"
+            unique_id = (
+                f"{timestamp}|{caller_id}|{destination}|{description}|{duration}|{occurrence}"
+            )
+
+        direction = record.get("direction")
+        if not direction:
+            direction = CallRecord._direction_from_description(description)
 
         return CallRecord(
             unique_id=unique_id,
@@ -159,7 +181,7 @@ class CallRecord:
             timestamp=timestamp,
             duration=duration,
             disposition=disposition,
-            direction=CallRecord._direction_from_description(description),
+            direction=direction,
         )
 
     def is_voicemail(self) -> bool:

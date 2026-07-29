@@ -90,10 +90,8 @@ let VoipmsSmsCard = class VoipmsSmsCard extends i {
             throw new Error("Invalid configuration");
         }
         this._config = config;
-        if (config.did)
-            this._did = config.did;
-        if (config.to)
-            this._to = config.to;
+        this._did = config.did || "";
+        this._to = config.to || "";
     }
     getCardSize() {
         return 4;

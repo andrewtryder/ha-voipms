@@ -131,7 +131,7 @@ frontend/dist/voipms-sms-card.js
 Add it as a JavaScript module resource in Home Assistant:
 
 ```text
-/local/voipms-sms-card.js
+/voipms-frontend/voipms-sms-card.js
 ```
 
 Example card configuration:
