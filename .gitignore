@@ -11,3 +11,10 @@ htmlcov/
 
 # Local Home Assistant config (docker-compose)
 config/
+
+# E2E test artifacts and secrets
+.env
+.env.*
+!.env.example
+.e2e/
+artifacts/

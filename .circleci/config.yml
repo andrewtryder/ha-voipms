@@ -1,0 +1,37 @@
+version: 2.1
+
+jobs:
+  e2e_test:
+    machine:
+      image: ubuntu-2204:2024.01.1
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Check for required environment variables
+          command: |
+            if [ -z "${VOIPMS_API_USERNAME}" ] || [ -z "${VOIPMS_API_PASSWORD}" ] || [ -z "${VOIPMS_DEFAULT_DID}" ] || [ -z "${HACS_GITHUB_TOKEN}" ]; then
+              echo "Error: One or more required environment variables are missing."
+              echo "Ensure VOIPMS_API_USERNAME, VOIPMS_API_PASSWORD, VOIPMS_DEFAULT_DID, and HACS_GITHUB_TOKEN are set."
+              exit 1
+            fi
+            echo "All required environment variables are present."
+      - run:
+          name: Run End-to-End Tests
+          command: |
+            chmod +x scripts/e2e/*.sh
+            ./scripts/e2e/run.sh
+      - store_artifacts:
+          path: artifacts
+          destination: e2e-artifacts
+
+workflows:
+  e2e:
+    jobs:
+      - e2e_test:
+          context:
+            - voipms-e2e # Optional context for secrets
+
+  # Scheduled pipeline for daily execution
+  # Note: The actual schedule triggers must be configured via CircleCI Project Settings -> Triggers
+  # or via the CircleCI API, as scheduled workflows in config.yml are deprecated in CircleCI 2.1.
