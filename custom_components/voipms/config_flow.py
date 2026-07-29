@@ -189,7 +189,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        try:
+            self.config_entry = config_entry
+        except AttributeError:
+            pass # Provided by base class in HA 2024.12+
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

@@ -105,11 +105,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: VoipmsConfigEntry) -> bo
     )
 
     if hass.http is not None:
-        hass.http.register_static_path(
-            "/voipms-frontend",
-            hass.config.path("custom_components/voipms/frontend/dist"),
-            cache_headers=False,
-        )
+        if hasattr(hass.http, "async_register_static_paths"):
+            from homeassistant.components.http import StaticPathConfig
+            await hass.http.async_register_static_paths([
+                StaticPathConfig(
+                    "/voipms-frontend",
+                    hass.config.path("custom_components/voipms/frontend/dist"),
+                    cache_headers=False,
+                )
+            ])
+        else:
+            hass.http.register_static_path(
+                "/voipms-frontend",
+                hass.config.path("custom_components/voipms/frontend/dist"),
+                cache_headers=False,
+            )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await async_register_inbound_sms_webhook(hass, entry)
