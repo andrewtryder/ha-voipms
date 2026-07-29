@@ -1,0 +1,10 @@
+[
+  {
+    "entity_id": "sensor.voip_ms_voicemails",
+    "state": "30"
+  },
+  {
+    "entity_id": "sensor.voip_ms_account_balance",
+    "state": "11.987600"
+  }
+]

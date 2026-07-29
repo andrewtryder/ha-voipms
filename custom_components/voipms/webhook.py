@@ -69,7 +69,7 @@ async def async_register_inbound_sms_webhook(
             await process_inbound_sms(hass, entry, sms)
 
             return web.Response(text="ok", status=200)
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             _LOGGER.error("Error handling VoIP.ms webhook: %s", err)
             return web.Response(status=500)
 
@@ -100,7 +100,7 @@ async def async_register_inbound_sms_webhook(
 
             result = await hass.async_add_executor_job(register_webhook)
             _LOGGER.info("Registered VoIP.ms webhook %s: %s", webhook_url, result)
-    except Exception as ex:
+    except Exception as ex:  # noqa: BLE001
         _LOGGER.warning(
             "Failed to register webhook with VoIP.ms. You may need to configure it manually. Error: %s",
             ex,

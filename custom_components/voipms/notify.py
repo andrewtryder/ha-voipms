@@ -15,7 +15,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .api import VoipMsRestClient
+from .api import VoipMsApiError, VoipMsRestClient
 from .const import CONF_DEFAULT_DID, DOMAIN
 from .helpers import voipms_device_info
 
@@ -104,5 +104,5 @@ class VoipmsNotifyEntity(NotifyEntity):
             )
             if result.get("status") != "success":
                 _LOGGER.error("VoIP.MS sendSMS failed: %s", result.get("status"))
-        except Exception as ex:  # pylint: disable=broad-except
+        except VoipMsApiError as ex:
             _LOGGER.error("Failed to send VoIP.MS SMS to %s: %s", to, ex)

@@ -1,0 +1,6 @@
+2026-07-29 10:32:23.139 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration voipms which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2026-07-29 10:32:23.143 WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration hacs which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+2026-07-29 10:32:37.937 WARNING (SyncWorker_1) [custom_components.voipms.coordinator] Failed to fetch subaccounts: {'status': 'no_account', 'message': 'There are no accounts'}
+2026-07-29 10:33:09.286 WARNING (MainThread) [homeassistant.components.sensor] Setup of sensor platform voipms is taking over 10 seconds.
+2026-07-29 10:33:13.299 WARNING (SyncWorker_4) [custom_components.voipms.coordinator] Failed to fetch subaccounts: {'status': 'no_account', 'message': 'There are no accounts'}
+2026-07-29 10:33:23.765 WARNING (MainThread) [homeassistant.bootstrap] Waiting for integrations to complete setup: {('voipms', '01KYQ4H599R9ASG5KT1CVC82R7'): 623.892199907}

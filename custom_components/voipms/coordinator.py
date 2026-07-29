@@ -169,7 +169,7 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
 
                         call_date = datetime.strptime(
                             call_record.timestamp, "%Y-%m-%d %H:%M:%S"
-                        )
+                        ).replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
                         if call_date < threshold_time:
                             continue
 

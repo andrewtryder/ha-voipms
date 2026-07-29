@@ -54,7 +54,7 @@ class VoipMsRestClient:
         )
 
         try:
-            with urlopen(request, timeout=self.timeout) as response:  # noqa: S310
+            with urlopen(request, timeout=self.timeout) as response:
                 raw_response = response.read().decode("utf-8")
         except (HTTPError, URLError, TimeoutError, OSError) as ex:
             raise VoipMsApiError(f"VoIP.ms REST API request failed: {ex}") from ex

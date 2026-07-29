@@ -1,6 +1,6 @@
 """Test VoIP.ms sensors."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
@@ -12,7 +12,7 @@ from custom_components.voipms.const import DOMAIN, CONF_DEFAULT_DID
 async def test_sensors(hass: HomeAssistant, mock_voipms_client) -> None:
     """Test sensors are created and updated correctly."""
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     valid_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
     mock_voipms_client.get_balance.return_value = {

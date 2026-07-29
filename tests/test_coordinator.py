@@ -1,6 +1,6 @@
 """Test VoIP.ms data update coordinator."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, EVENT_LOGBOOK_ENTRY
 from homeassistant.core import HomeAssistant
@@ -14,7 +14,7 @@ async def test_coordinator_continues_when_balance_fetch_fails(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:
     """Test coordinator returns CDR data when balance fetch fails."""
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     valid_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
     mock_voipms_client.get_balance.side_effect = VoipMsApiError(
@@ -56,7 +56,7 @@ async def test_coordinator_processes_new_calls_on_subsequent_refresh(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:
     """Test coordinator logs only newly seen calls after the initial seed poll."""
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     valid_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
     mock_voipms_client.get_cdr.return_value = {
