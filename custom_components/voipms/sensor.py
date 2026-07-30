@@ -18,7 +18,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 if TYPE_CHECKING:
     from .__init__ import VoipmsConfigEntry
 from .coordinator import VoipmsDataUpdateCoordinator
-from .helpers import voipms_device_info, mask_phone_number
+from .helpers import mask_phone_number, voipms_device_info
 
 _LOGGER = logging.getLogger(__name__)
 

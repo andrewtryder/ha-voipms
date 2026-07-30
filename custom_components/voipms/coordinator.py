@@ -1,7 +1,6 @@
 """Data update coordinator for VoIP.ms integration."""
 
 import logging
-
 from datetime import datetime, timedelta
 from typing import Any
 

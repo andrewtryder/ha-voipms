@@ -1,0 +1,14 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+# Stable rule set matching prior CI enforcement under pinned ruff 0.16.
+# Pinning the tool version in requirements-dev.txt prevents floating-default drift.
+select = [
+  "E4",
+  "E7",
+  "E9",
+  "F",
+  "I",
+]

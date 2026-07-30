@@ -15,7 +15,6 @@ Examples:
 
 Inspect existing patterns before adding new abstractions.
 
-
 ## CI/CD safety
 
 Do not relax linting, typechecking, tests, coverage, or deployment protections to make a change pass.

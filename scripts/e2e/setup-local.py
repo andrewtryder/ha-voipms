@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
+import json
 import os
 import shutil
+import subprocess
 import urllib.request
 import zipfile
-import json
-import subprocess
 
 
 def main():
@@ -61,8 +61,8 @@ def main():
         with open("artifacts/integration-git-sha.txt", "w") as f:
             f.write(git_sha)
         print(f"Integration tested at commit {git_sha}")
-    except Exception as e:
-        print(f"Warning: Could not get git SHA: {e}")
+    except (OSError, subprocess.CalledProcessError) as err:
+        print(f"Warning: Could not get git SHA: {err}")
 
     # Setup HACS config entry in .storage to bypass device flow
     storage_dir = os.path.join(e2e_dir, ".storage")

@@ -14,6 +14,9 @@ export default {
       tsconfig: "./tsconfig.json",
       declaration: false,
       sourceMap: false,
+      compilerOptions: {
+        outDir: "../custom_components/voipms/frontend",
+      },
     }),
   ],
 };
