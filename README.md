@@ -8,7 +8,8 @@
   <a href="https://github.com/andrewtryder/ha-voipms/actions/workflows/ci.yml"><img src="https://github.com/andrewtryder/ha-voipms/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/andrewtryder/ha-voipms/releases"><img src="https://img.shields.io/github/v/release/andrewtryder/ha-voipms?label=release" alt="Latest release"></a>
   <a href="https://hacs.xyz/docs/faq/custom_repositories"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS custom repository"></a>
-  <img src="https://img.shields.io/badge/Home%20Assistant-2024.11.0%2B-41BDF5.svg" alt="Home Assistant 2024.11.0+">
+  <img src="https://img.shields.io/badge/Home%20Assistant-2026.3.0%2B-41BDF5.svg" alt="Home Assistant 2026.3.0+">
+  <img src="https://img.shields.io/badge/Python-3.14.2%2B-3776AB.svg" alt="Python 3.14.2+">
   <a href="LICENSE"><img src="https://img.shields.io/github/license/andrewtryder/ha-voipms" alt="License"></a>
 </p>
 
@@ -27,7 +28,7 @@ This an unofficial, custom integration uses the VoIP.ms REST API to expose accou
 
 ## Requirements
 
-- Home Assistant `2024.11.0` or newer.
+- Home Assistant `2026.3.0` or newer (Python `3.14.2` or newer).
 - A VoIP.ms account with the REST/JSON API enabled.
 - VoIP.ms API username and API password, with proper IP address allowance.
 - A default DID for SMS and webhook registration.

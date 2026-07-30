@@ -35,11 +35,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - ha-version: "2024.11.0"
-            python-version: "3.12"
-            pytest-ha: "0.13.205"
-          - ha-version: "latest"
-            python-version: "3.13"
+          - ha-label: "2026.3"
+            python-version: "3.14"
+            pytest-ha: "0.13.317"
+          - ha-label: "latest"
+            python-version: "3.14"
             pytest-ha: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -53,14 +53,11 @@ jobs:
           enable-cache: true
       - name: Install dependencies
         run: |
-          uv pip install --system ruff==0.16.0 coverage pytest pytest-asyncio voluptuous zeep
+          uv pip install --system ruff==0.16.0 zeep
           if [ -n "${{ matrix.pytest-ha }}" ]; then
             uv pip install --system "pytest-homeassistant-custom-component==${{ matrix.pytest-ha }}"
           else
             uv pip install --system pytest-homeassistant-custom-component
-          fi
-          if [ "${{ matrix.ha-version }}" != "latest" ]; then
-            uv pip install --system "homeassistant==${{ matrix.ha-version }}"
           fi
       - name: Check formatting
         run: ruff format --check .
