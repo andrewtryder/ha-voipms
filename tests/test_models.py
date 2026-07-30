@@ -33,7 +33,7 @@ async def test_inbound_sms_valid_payload(
         "to": "5551234567",
         "message": "Hello, world!",
         "id": "abc123",
-        "date": "2024-01-01",
+        "date": "2024-01-01 12:00:00",
     }
 
     sms = InboundSms.parse_inbound_sms(payload)
@@ -41,7 +41,7 @@ async def test_inbound_sms_valid_payload(
     assert sms.recipient == "5551234567"
     assert sms.message == "Hello, world!"
     assert sms.message_id == "abc123"
-    assert sms.timestamp == "2024-01-01"
+    assert sms.timestamp == "2024-01-01 12:00:00"
 
     # Verify event data matches legacy keys
     event_data = sms.to_event_data()
@@ -49,7 +49,7 @@ async def test_inbound_sms_valid_payload(
     assert event_data["to"] == "5551234567"
     assert event_data["message"] == "Hello, world!"
     assert event_data["id"] == "abc123"
-    assert event_data["date"] == "2024-01-01"
+    assert event_data["date"] == "2024-01-01 12:00:00"
 
 
 async def test_inbound_sms_missing_from(
@@ -73,7 +73,7 @@ async def test_inbound_sms_missing_from(
         "to": "5551234567",
         "message": "Hello",
         "id": "123",
-        "date": "2024-01-01",
+        "date": "2024-01-01 12:00:00",
     }
 
     try:
@@ -102,7 +102,7 @@ async def test_inbound_sms_missing_to(hass: HomeAssistant, mock_voipms_client) -
         "from": "5559876543",
         "message": "Hello",
         "id": "123",
-        "date": "2024-01-01",
+        "date": "2024-01-01 12:00:00",
     }
 
     try:
@@ -133,7 +133,7 @@ async def test_inbound_sms_missing_message(
         "from": "5559876543",
         "to": "5551234567",
         "id": "123",
-        "date": "2024-01-01",
+        "date": "2024-01-01 12:00:00",
     }
 
     try:
@@ -162,7 +162,7 @@ async def test_inbound_sms_missing_id(hass: HomeAssistant, mock_voipms_client) -
         "from": "5559876543",
         "to": "5551234567",
         "message": "Hello",
-        "date": "2024-01-01",
+        "date": "2024-01-01 12:00:00",
     }
 
     try:
@@ -276,7 +276,37 @@ def test_call_record_parses_outbound_cdr_without_uniqueid() -> None:
     call = CallRecord.parse_cdr_record(record)
     assert call is not None
     assert call.direction == DIRECTION_OUTBOUND
-    assert call.unique_id == ("2024-01-01 13:00:00|5551234567|5559876543|Outbound call")
+    assert call.unique_id == (
+        "2024-01-01 13:00:00|5551234567|5559876543|Outbound call|30|0"
+    )
+
+
+def test_call_record_parses_unknown_direction_cdr() -> None:
+    """Test CDR record parsing for unknown directions."""
+    from custom_components.voipms.const import DIRECTION_UNKNOWN
+    from custom_components.voipms.models import CallRecord
+
+    record = {
+        "callerid": "5551234567",
+        "destination": "5559876543",
+        "description": "Internal routing",
+        "date": "2024-01-01 14:00:00",
+        "duration": "10",
+        "disposition": "ANSWERED",
+    }
+
+    call = CallRecord.parse_cdr_record(record)
+    assert call is not None
+    assert call.direction == DIRECTION_UNKNOWN
+    assert call.unique_id == (
+        "2024-01-01 14:00:00|5551234567|5559876543|Internal routing|10|0"
+    )
+
+    # With explicit provider direction field
+    record["direction"] = "outbound"
+    call2 = CallRecord.parse_cdr_record(record)
+    assert call2 is not None
+    assert call2.direction == "outbound"
 
 
 def test_call_record_returns_none_without_date() -> None:

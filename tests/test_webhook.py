@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from aiohttp.hdrs import METH_GET, METH_POST, METH_PUT
+from aiohttp.hdrs import METH_GET, METH_POST
 from homeassistant.components.persistent_notification import (
     _async_get_or_create_notifications,
 )
@@ -50,7 +50,7 @@ async def test_webhook_registers_with_get_method(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    assert captured["allowed_methods"] == (METH_GET, METH_POST, METH_PUT)
+    assert captured["allowed_methods"] == (METH_GET, METH_POST)
 
 
 async def test_set_sms_receives_callback_url_template(
@@ -111,7 +111,7 @@ async def test_inbound_sms_webhook_fires_event_on_get(
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01",
+        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
     )
     response = await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
@@ -122,8 +122,9 @@ async def test_inbound_sms_webhook_fires_event_on_get(
     assert events[0]["to"] == "5551234567"
     assert events[0]["from"] == "5559876543"
     assert events[0]["message"] == "hello"
-    assert events[0]["id"] == "42"
-    assert events[0]["date"] == "2024-01-01"
+    assert events[0]["date"] == "2024-01-01 12:00:00"
+    assert events[0]["account"] == "test_user"
+    assert events[0]["config_entry_id"] == entry.entry_id
 
 
 async def test_inbound_sms_webhook_writes_logbook_entry(
@@ -156,7 +157,7 @@ async def test_inbound_sms_webhook_writes_logbook_entry(
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01",
+        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
     )
     await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
@@ -193,12 +194,59 @@ async def test_inbound_sms_webhook_creates_persistent_notification(
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01",
+        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
     )
     await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
 
     notifications = _async_get_or_create_notifications(hass)
-    assert "voipms_sms_42" in notifications
-    assert notifications["voipms_sms_42"]["message"] == "hello"
-    assert notifications["voipms_sms_42"]["title"] == "SMS from ******6543"
+    expected_id = f"voipms_{entry.entry_id}_sms_42"
+    assert expected_id in notifications
+    assert notifications[expected_id]["message"] == "hello"
+    assert notifications[expected_id]["title"] == "SMS from ******6543"
+
+
+async def test_inbound_sms_webhook_deduplication(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test GET webhook request ignores duplicate messages."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+
+    def capture_event(event):
+        events.append(event.data)
+
+    hass.bus.async_listen(EVENT_INBOUND_SMS, capture_event)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 200
+    assert len(events) == 1
+
+    # Second request with the same ID should be ignored (200 OK, but no event)
+    response2 = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response2.status == 200
+    assert len(events) == 1

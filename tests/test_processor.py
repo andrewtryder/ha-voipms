@@ -25,7 +25,7 @@ def _get_last_call_entity_id(hass: HomeAssistant, entry: MockConfigEntry) -> str
     for registry_entry in er.async_entries_for_config_entry(
         entity_registry, entry.entry_id
     ):
-        if registry_entry.unique_id == f"{entry.entry_id}_last_call":
+        if registry_entry.unique_id == f"{entry.unique_id}_last_call":
             return registry_entry.entity_id
     raise AssertionError("Last call sensor entity not found")
 
@@ -86,6 +86,8 @@ async def test_process_call_creates_event_logbook_and_notification(
         assert captured_events[0]["callerid"] == "5559876543"
         assert captured_events[0]["destination"] == "5551234567"
         assert captured_events[0]["direction"] == "inbound"
+        assert captured_events[0]["account"] == "test_user"
+        assert captured_events[0]["config_entry_id"] == entry.entry_id
 
         assert len(captured_logbook) == 1
         assert (
@@ -96,7 +98,8 @@ async def test_process_call_creates_event_logbook_and_notification(
 
         mock_create.assert_called_once()
         assert (
-            mock_create.call_args.kwargs["notification_id"] == "voipms_call_call-abc123"
+            mock_create.call_args.kwargs["notification_id"]
+            == f"voipms_{entry.entry_id}_call_call-abc123"
         )
 
 
@@ -162,8 +165,8 @@ async def test_process_call_updates_last_call_sensor(
     sensor_state = hass.states.get(sensor_entity_id)
     assert sensor_state is not None
     assert sensor_state.state == "2024-01-01 12:00:00"
-    assert sensor_state.attributes["caller_id"] == "5559876543"
-    assert sensor_state.attributes["destination"] == "5551234567"
+    assert sensor_state.attributes["caller_id"] == "******6543"
+    assert sensor_state.attributes["destination"] == "******4567"
     assert sensor_state.attributes["direction"] == "inbound"
     assert sensor_state.attributes["duration"] == "45"
     assert sensor_state.attributes["disposition"] == "ANSWERED"
@@ -176,7 +179,7 @@ def _get_last_sms_entity_id(hass: HomeAssistant, entry: MockConfigEntry) -> str:
     for registry_entry in er.async_entries_for_config_entry(
         entity_registry, entry.entry_id
     ):
-        if registry_entry.unique_id == f"{entry.entry_id}_last_sms":
+        if registry_entry.unique_id == f"{entry.unique_id}_last_sms":
             return registry_entry.entity_id
     raise AssertionError("Last SMS sensor entity not found")
 
@@ -245,6 +248,8 @@ async def test_process_inbound_sms_creates_event_logbook_and_notification(
         assert captured_events[0]["to"] == "5551234567"
         assert captured_events[0]["message"] == "Hello, world!"
         assert captured_events[0]["id"] == "abc123"
+        assert captured_events[0]["account"] == "test_user"
+        assert captured_events[0]["config_entry_id"] == entry.entry_id
 
         # Verify logbook entry was created (with balance sensor entity)
         assert len(captured_logbook) == 1
@@ -256,7 +261,7 @@ async def test_process_inbound_sms_creates_event_logbook_and_notification(
             hass,
             "Hello, world!",
             title="SMS from ******6543",
-            notification_id="voipms_sms_abc123",
+            notification_id=f"voipms_{entry.entry_id}_sms_abc123",
         )
 
 
@@ -298,9 +303,9 @@ async def test_process_inbound_sms_updates_last_sms_sensor(
     sensor_state = hass.states.get(sensor_entity_id)
     assert sensor_state is not None
     assert sensor_state.state == "2024-01-01"
-    assert sensor_state.attributes["sender"] == "5559876543"
-    assert sensor_state.attributes["message"] == "Hello, world!"
-    assert sensor_state.attributes["recipient"] == "5551234567"
+    assert sensor_state.attributes["sender"] == "******6543"
+    assert "message" not in sensor_state.attributes
+    assert sensor_state.attributes["recipient"] == "******4567"
     assert sensor_state.attributes["timestamp"] == "2024-01-01"
     assert sensor_state.attributes["message_id"] == "def456"
 
@@ -350,7 +355,7 @@ async def test_process_inbound_sms_long_message_truncation(
     assert "AAAA" in captured_logbook[0]["message"]
     assert "..." in captured_logbook[0]["message"]
 
-    # Verify the sensor state was set with full message
+    # Verify the sensor state does not contain the message for privacy
     sensor_state = hass.states.get(_get_last_sms_entity_id(hass, entry))
     assert sensor_state is not None
-    assert sensor_state.attributes["message"] == long_message
+    assert "message" not in sensor_state.attributes

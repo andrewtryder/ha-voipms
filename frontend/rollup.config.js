@@ -4,7 +4,7 @@ import typescript from "@rollup/plugin-typescript";
 export default {
   input: "src/voipms-sms-card.ts",
   output: {
-    file: "dist/voipms-sms-card.js",
+    file: "../custom_components/voipms/frontend/voipms-sms-card.js",
     format: "es",
     sourcemap: false,
   },
@@ -14,6 +14,9 @@ export default {
       tsconfig: "./tsconfig.json",
       declaration: false,
       sourceMap: false,
+      compilerOptions: {
+        outDir: "../custom_components/voipms/frontend",
+      },
     }),
   ],
 };

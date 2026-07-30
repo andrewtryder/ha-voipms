@@ -39,7 +39,6 @@ When adding a license file, match the license type to the repository visibility:
 ## Related docs
 
 - `docs/concepts.md`
-- `docs/ai-rules-maintenance.md`
 - `docs/profiles.md`
 - `docs/detection.md`
 - `docs/branch-protection.md`

@@ -138,7 +138,7 @@ async def test_registration_status_updates_on_poll(
         "registered": "no",
     }
 
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data.coordinator
     await coordinator.async_refresh()
     await hass.async_block_till_done()
 

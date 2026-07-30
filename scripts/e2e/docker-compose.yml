@@ -1,0 +1,15 @@
+services:
+  homeassistant:
+    image: ${HA_IMAGE:-ghcr.io/home-assistant/home-assistant}:${HA_VERSION:-stable}
+    container_name: ${COMPOSE_PROJECT_NAME:-voipms_e2e}_ha
+    volumes:
+      - ${PWD}/.e2e/config:/config
+    environment:
+      - TZ=America/New_York
+    ports:
+      - "127.0.0.1:8123:8123"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8123/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

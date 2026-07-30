@@ -1,3 +1,6 @@
-pytest-homeassistant-custom-component==0.13.205
+pytest
+pytest-asyncio
+pytest-homeassistant-custom-component
+voluptuous
 ruff==0.16.0
-coverage==7.6.8
+coverage

@@ -7,7 +7,24 @@
         "data": {
           "username": "API Username",
           "password": "API Password",
-          "default_did": "Default DID (Required)"
+          "default_did": "Default DID (Required)",
+          "manage_webhook": "Automatically manage SMS Webhook"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate VoIP.ms",
+        "description": "Please enter your password for {username} to reauthenticate with VoIP.ms.",
+        "data": {
+          "password": "API Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure VoIP.ms",
+        "description": "Update your VoIP.ms configuration settings.",
+        "data": {
+          "password": "API Password",
+          "default_did": "Default DID (Required)",
+          "manage_webhook": "Automatically manage SMS Webhook"
         }
       }
     },
@@ -21,7 +38,19 @@
       "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Re-configuration was successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "VoIP.ms Options",
+        "data": {
+          "manage_webhook": "Automatically manage SMS Webhook"
+        }
+      }
     }
   }
 }

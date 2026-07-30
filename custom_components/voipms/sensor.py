@@ -3,33 +3,33 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+if TYPE_CHECKING:
+    from .__init__ import VoipmsConfigEntry
 from .coordinator import VoipmsDataUpdateCoordinator
-from .helpers import voipms_device_info
+from .helpers import mask_phone_number, voipms_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: VoipmsConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the VoIP.ms sensor platform."""
-    coordinator = hass.data["voipms"][entry.entry_id]
+    coordinator = entry.runtime_data.coordinator
     last_sms_sensor = VoipmsLastSmsSensor(entry)
     last_call_sensor = VoipmsLastCallSensor(entry)
 
@@ -42,8 +42,8 @@ async def async_setup_entry(
         last_call_sensor,
     ]
 
-    hass.data[DOMAIN][f"{entry.entry_id}_last_sms_entity"] = last_sms_sensor
-    hass.data[DOMAIN][f"{entry.entry_id}_last_call_entity"] = last_call_sensor
+    entry.runtime_data.last_sms_entity = last_sms_sensor
+    entry.runtime_data.last_call_entity = last_call_sensor
     async_add_entities(sensors, True)
 
 
@@ -51,7 +51,7 @@ class VoipmsBaseSensor(CoordinatorEntity[VoipmsDataUpdateCoordinator], SensorEnt
     """Base class for VoIP.ms sensors."""
 
     def __init__(
-        self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry
+        self, coordinator: VoipmsDataUpdateCoordinator, entry: VoipmsConfigEntry
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -60,7 +60,7 @@ class VoipmsBaseSensor(CoordinatorEntity[VoipmsDataUpdateCoordinator], SensorEnt
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        return voipms_device_info(self._entry.entry_id)
+        return voipms_device_info(self._entry.unique_id)
 
 
 class VoipmsBalanceSensor(VoipmsBaseSensor):
@@ -73,11 +73,11 @@ class VoipmsBalanceSensor(VoipmsBaseSensor):
     _attr_native_unit_of_measurement = "USD"  # Assuming USD, adjust if needed
 
     def __init__(
-        self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry
+        self, coordinator: VoipmsDataUpdateCoordinator, entry: VoipmsConfigEntry
     ) -> None:
         """Initialize the balance sensor."""
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_balance"
+        self._attr_unique_id = f"{entry.unique_id}_balance"
 
     @property
     def native_value(self):
@@ -96,11 +96,11 @@ class VoipmsInboundCallsSensor(VoipmsBaseSensor):
     _attr_native_unit_of_measurement = "calls"
 
     def __init__(
-        self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry
+        self, coordinator: VoipmsDataUpdateCoordinator, entry: VoipmsConfigEntry
     ) -> None:
         """Initialize the inbound calls sensor."""
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_inbound_calls_24h"
+        self._attr_unique_id = f"{entry.unique_id}_inbound_calls_24h"
 
     @property
     def native_value(self):
@@ -119,11 +119,11 @@ class VoipmsOutboundCallsSensor(VoipmsBaseSensor):
     _attr_native_unit_of_measurement = "calls"
 
     def __init__(
-        self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry
+        self, coordinator: VoipmsDataUpdateCoordinator, entry: VoipmsConfigEntry
     ) -> None:
         """Initialize the outbound calls sensor."""
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_outbound_calls_24h"
+        self._attr_unique_id = f"{entry.unique_id}_outbound_calls_24h"
 
     @property
     def native_value(self):
@@ -142,11 +142,11 @@ class VoipmsVoicemailCallsSensor(VoipmsBaseSensor):
     _attr_native_unit_of_measurement = "messages"
 
     def __init__(
-        self, coordinator: VoipmsDataUpdateCoordinator, entry: ConfigEntry
+        self, coordinator: VoipmsDataUpdateCoordinator, entry: VoipmsConfigEntry
     ) -> None:
         """Initialize the voicemails sensor."""
         super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_voicemail_calls_24h"
+        self._attr_unique_id = f"{entry.unique_id}_voicemail_calls_24h"
 
     @property
     def native_value(self):
@@ -162,25 +162,24 @@ class VoipmsLastSmsSensor(SensorEntity):
     _attr_has_entity_name = True
     _attr_name = "Last SMS"
 
-    def __init__(self, entry: ConfigEntry) -> None:
+    def __init__(self, entry: VoipmsConfigEntry) -> None:
         """Initialize the last SMS sensor."""
         self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_last_sms"
+        self._attr_unique_id = f"{entry.unique_id}_last_sms"
         self._state = None
         self._attributes: dict[str, Any] = {}
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        return voipms_device_info(self._entry.entry_id)
+        return voipms_device_info(self._entry.unique_id)
 
     def set_state_from_sms(self, sms: Any) -> None:
         """Set sensor state and attributes from an InboundSms model."""
         self._state = sms.timestamp
         self._attributes = {
-            "sender": sms.sender,
-            "message": sms.message,
-            "recipient": sms.recipient,
+            "sender": mask_phone_number(sms.sender),
+            "recipient": mask_phone_number(sms.recipient),
             "timestamp": sms.timestamp,
             "message_id": sms.message_id,
         }
@@ -203,24 +202,24 @@ class VoipmsLastCallSensor(SensorEntity):
     _attr_has_entity_name = True
     _attr_name = "Last Call"
 
-    def __init__(self, entry: ConfigEntry) -> None:
+    def __init__(self, entry: VoipmsConfigEntry) -> None:
         """Initialize the last call sensor."""
         self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_last_call"
+        self._attr_unique_id = f"{entry.unique_id}_last_call"
         self._state = None
         self._attributes: dict[str, Any] = {}
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        return voipms_device_info(self._entry.entry_id)
+        return voipms_device_info(self._entry.unique_id)
 
     def set_state_from_call(self, call: Any) -> None:
         """Set sensor state and attributes from a CallRecord model."""
         self._state = call.timestamp
         self._attributes = {
-            "caller_id": call.caller_id,
-            "destination": call.destination,
+            "caller_id": mask_phone_number(call.caller_id),
+            "destination": mask_phone_number(call.destination),
             "description": call.description,
             "duration": call.duration,
             "disposition": call.disposition,
