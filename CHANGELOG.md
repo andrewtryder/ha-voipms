@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/andrewtryder/ha-voipms/compare/v1.8.0...v2.0.0) (2026-07-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* require Home Assistant 2026.3 and Python 3.14 ([#53](https://github.com/andrewtryder/ha-voipms/issues/53))
+
+### Features
+
+* require Home Assistant 2026.3 and Python 3.14 ([#53](https://github.com/andrewtryder/ha-voipms/issues/53)) ([de5c6ec](https://github.com/andrewtryder/ha-voipms/commit/de5c6ec5b75e5051a1668598d622e91ee80a0d4c))
+
 ## [1.8.0](https://github.com/andrewtryder/ha-voipms/compare/v1.7.1...v1.8.0) (2026-07-30)
 
 
