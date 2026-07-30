@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.8.0](https://github.com/andrewtryder/ha-voipms/compare/v1.7.1...v1.8.0) (2026-07-30)
+
+
+### Features
+
+* **hardening:** harden coordinator, HA compat, and hybrid CI ([#46](https://github.com/andrewtryder/ha-voipms/issues/46)) ([8bc0f31](https://github.com/andrewtryder/ha-voipms/commit/8bc0f3136c513f844c2d9b034b4d89dbe13481d8))
+
+
+### Bug Fixes
+
+* **ci:** restore ruff and docs checks on main ([#45](https://github.com/andrewtryder/ha-voipms/issues/45)) ([c017ab8](https://github.com/andrewtryder/ha-voipms/commit/c017ab8aaa0955746eae44e12ebaebedda673f86))
+* **core:** resolve ruff lint errors and bump version to 1.7.2 ([28da28b](https://github.com/andrewtryder/ha-voipms/commit/28da28b11f57d55b8bd86b1d94d1c820c0d87812))
+
 ## [1.7.1](https://github.com/andrewtryder/ha-voipms/compare/v1.7.0...v1.7.1) (2026-07-07)
 
 
