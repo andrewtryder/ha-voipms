@@ -1,10 +1,10 @@
 """Test VoIP.ms setup and unload."""
 
-from homeassistant.core import HomeAssistant
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from homeassistant.components.persistent_notification import (
     _async_get_or_create_notifications,
 )
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 

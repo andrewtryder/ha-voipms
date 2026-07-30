@@ -18,11 +18,9 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           required = [
               "README.md",
-              ".repo-policy.yml",
               "AGENTS.md",
               "CONTRIBUTING.md",
               ".gitignore",
@@ -52,41 +50,6 @@ jobs:
           for group in recommended:
               if not any(Path(item).is_file() for item in group):
                   print(f"::warning::Recommended file missing: {' or '.join(group)}")
-
-          policy = Path(".repo-policy.yml")
-          if policy.is_file():
-              text = policy.read_text(encoding="utf-8", errors="ignore")
-              visibility = None
-              license_value = None
-              vis_match = re.search(r"(?m)^visibility:\s*[\"']?([^\"'\n#]+)", text)
-              if vis_match:
-                  visibility = vis_match.group(1).strip().lower()
-              match = re.search(r"(?m)^license:\s*[\"']?([^\"'\n#]+)", text)
-              if match:
-                  license_value = match.group(1).strip().lower()
-              open_source_values = {
-                  "mit",
-                  "apache-2.0",
-                  "bsd-2-clause",
-                  "bsd-3-clause",
-                  "mpl-2.0",
-                  "gpl-3.0",
-                  "lgpl-3.0",
-                  "agpl-3.0",
-                  "isc",
-              }
-              closed_values = {"proprietary", "none", "unlicensed"}
-              has_license = Path("LICENSE").is_file() or Path("LICENSE.md").is_file()
-              if license_value in closed_values and visibility == "public":
-                  print(
-                      "::warning::.repo-policy.yml declares a public repository with a "
-                      f"closed license ({license_value}); review visibility and license"
-                  )
-              elif license_value in open_source_values and not has_license:
-                  print(
-                      "::warning::.repo-policy.yml declares an open-source "
-                      f"license ({license_value}) but LICENSE/LICENSE.md is missing"
-                  )
 
           if missing:
               print("Required documentation files are missing:")

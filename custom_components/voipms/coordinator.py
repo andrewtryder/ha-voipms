@@ -4,9 +4,9 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from homeassistant.util import dt as dt_util
 
 from .api import VoipMsApiError, VoipMsRestClient
@@ -159,7 +159,9 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                 inbound_count = 0
                 outbound_count = 0
                 new_calls: list[CallRecord] = []
-                threshold_time = now.replace(tzinfo=None) - timedelta(hours=24)
+                threshold_time = now.astimezone(dt_util.DEFAULT_TIME_ZONE) - timedelta(
+                    hours=24
+                )
 
                 for call in cdrs:
                     try:

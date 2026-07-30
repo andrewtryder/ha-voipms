@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-
 from typing import Any
 
 from aiohttp import web
@@ -14,7 +13,7 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
 from .api import VoipMsRestClient
-from .const import DOMAIN, build_webhook_callback_url, CONF_DEFAULT_DID
+from .const import CONF_DEFAULT_DID, DOMAIN, build_webhook_callback_url
 from .models import InboundSms, InboundSmsValidationError
 from .processor import process_inbound_sms
 

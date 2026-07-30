@@ -2,11 +2,11 @@
 
 from datetime import datetime, timezone
 
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.voipms.const import DOMAIN, CONF_DEFAULT_DID
+from custom_components.voipms.const import CONF_DEFAULT_DID, DOMAIN
 
 
 async def test_sensors(hass: HomeAssistant, mock_voipms_client) -> None:
