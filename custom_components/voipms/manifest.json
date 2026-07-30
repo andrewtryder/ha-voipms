@@ -6,7 +6,7 @@
   ],
   "config_flow": true,
   "single_config_entry": true,
-  "dependencies": [],
+  "dependencies": ["http"],
   "documentation": "https://voip.ms/m/apidocs.php",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/andrewtryder/ha-voipms/issues",
