@@ -6,15 +6,14 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant import config_entries
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
 from .api import VoipMsApiError, VoipMsRestClient
-from .const import DOMAIN, CONF_DEFAULT_DID
+from .const import CONF_DEFAULT_DID, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

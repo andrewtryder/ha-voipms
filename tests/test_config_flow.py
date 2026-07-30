@@ -1,12 +1,12 @@
 """Test the VoIP.ms config flow."""
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
 from custom_components.voipms.api import VoipMsApiError
-from custom_components.voipms.const import DOMAIN, CONF_DEFAULT_DID
+from custom_components.voipms.const import CONF_DEFAULT_DID, DOMAIN
 
 
 async def test_form_success(hass: HomeAssistant, mock_voipms_client) -> None:

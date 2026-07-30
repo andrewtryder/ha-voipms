@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, ClassVar, Mapping
+from typing import Any, ClassVar
 
 from .const import DIRECTION_INBOUND, DIRECTION_OUTBOUND
 
 
 class InboundSmsValidationError(ValueError):
     """Raised when inbound SMS payload validation fails."""
-
-    pass
 
 
 @dataclass(frozen=True)

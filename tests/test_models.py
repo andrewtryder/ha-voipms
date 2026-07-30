@@ -3,7 +3,7 @@
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.voipms.const import DOMAIN, CONF_DEFAULT_DID
+from custom_components.voipms.const import CONF_DEFAULT_DID, DOMAIN
 from custom_components.voipms.models import (
     InboundSms,
     InboundSmsValidationError,

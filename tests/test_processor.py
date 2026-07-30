@@ -1,8 +1,9 @@
 """Test VoIP.ms inbound SMS processor."""
 
 from unittest.mock import patch
+
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, EVENT_LOGBOOK_ENTRY
 from homeassistant.core import HomeAssistant
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, EVENT_LOGBOOK_ENTRY
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
