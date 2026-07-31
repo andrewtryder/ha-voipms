@@ -2,6 +2,7 @@
 
 import logging
 from datetime import timedelta
+from enum import StrEnum
 
 DOMAIN = "voipms"
 
@@ -10,6 +11,19 @@ LOGGER = logging.getLogger(__package__)
 CONF_DEFAULT_DID = "default_did"
 
 UPDATE_INTERVAL = timedelta(minutes=5)
+
+MIN_SMS_MESSAGE_LENGTH = 1
+MAX_SMS_MESSAGE_LENGTH = 160
+
+
+class WebhookRegistrationStatus(StrEnum):
+    """Sanitized webhook registration status for system health."""
+
+    NOT_ATTEMPTED = "not_attempted"
+    DISABLED = "disabled"
+    REGISTERED = "registered"
+    FAILED = "failed"
+
 
 # Events
 EVENT_INBOUND_SMS = "voipms_inbound_sms"

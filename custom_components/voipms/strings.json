@@ -7,7 +7,24 @@
         "data": {
           "username": "API Username",
           "password": "API Password",
-          "default_did": "Default DID (Required)"
+          "default_did": "Default DID (Required)",
+          "manage_webhook": "Automatically manage SMS Webhook"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate VoIP.ms",
+        "description": "Please enter your password for {username} to reauthenticate with VoIP.ms.",
+        "data": {
+          "password": "API Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure VoIP.ms",
+        "description": "Update your VoIP.ms configuration settings.",
+        "data": {
+          "password": "API Password",
+          "default_did": "Default DID (Required)",
+          "manage_webhook": "Automatically manage SMS Webhook"
         }
       }
     },
@@ -18,10 +35,55 @@
       "ip_not_enabled": "Your Home Assistant public IP is not allowlisted. Add it under API settings in the VoIP.ms portal.",
       "api_not_enabled": "The VoIP.ms API is not enabled for your account. Enable it under Main Menu → SOAP and REST/JSON API.",
       "missing_credentials": "API username or password was not provided to VoIP.ms. Re-enter your credentials and try again.",
+      "invalid_did": "The sender DID must be a 10-digit NANPA number or an E.164 number.",
       "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Re-configuration was successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "VoIP.ms Options",
+        "data": {
+          "manage_webhook": "Automatically manage SMS Webhook"
+        }
+      }
+    }
+  },
+  "system_health": {
+    "info": {
+      "api_endpoint_reachable": "Reach VoIP.ms API",
+      "last_update_success": "Last data update successful",
+      "config_entry_state": "Configuration state",
+      "webhook_management_enabled": "Automatic webhook management",
+      "webhook_registration_status": "Webhook registration status"
+    }
+  },
+  "exceptions": {
+    "invalid_recipient": {
+      "message": "The recipient must be a 10-digit NANPA number or an E.164 number."
+    },
+    "invalid_did": {
+      "message": "The sender DID must be a 10-digit NANPA number or an E.164 number."
+    },
+    "missing_did": {
+      "message": "No valid sender DID is configured."
+    },
+    "empty_message": {
+      "message": "The SMS message cannot be empty."
+    },
+    "message_too_long": {
+      "message": "The SMS message cannot exceed {max_length} characters."
+    },
+    "sms_network_error": {
+      "message": "Network error while sending SMS."
+    },
+    "sms_provider_rejected": {
+      "message": "VoIP.ms rejected the SMS send request ({status})."
     }
   }
 }
