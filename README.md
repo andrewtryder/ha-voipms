@@ -102,6 +102,8 @@ data:
   did: "5551234567" # optional; defaults to the configured DID
 ```
 
+`to` and `did` must be canonical 10-digit NANPA (`5559876543`) or E.164 (`+15559876543`) numbers. Messages are limited to 160 characters and are rejected if longer (they are not split or converted to MMS).
+
 ## Receiving SMS
 
 When the integration loads, it attempts to register the VoIP.ms SMS callback URL automatically using your Home Assistant external URL.

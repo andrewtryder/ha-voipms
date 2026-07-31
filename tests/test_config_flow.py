@@ -122,3 +122,49 @@ async def test_form_cannot_connect(hass: HomeAssistant, mock_voipms_client) -> N
 
     assert result2["type"] == FlowResultType.FORM
     assert result2["errors"] == {"base": "cannot_connect"}
+
+
+async def test_form_invalid_default_did(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test invalid default DID returns a field-level error."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    bad_did = "555-123-4567"
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: bad_did,
+        },
+    )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {CONF_DEFAULT_DID: "invalid_did"}
+    mock_voipms_client.get_balance.assert_not_called()
+    assert bad_did not in str(result2)
+
+
+async def test_form_valid_e164_default_did(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test valid E.164 default DID is accepted."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "+15551234567",
+        },
+    )
+    await hass.async_block_till_done()
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["data"][CONF_DEFAULT_DID] == "+15551234567"

@@ -14,6 +14,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .api import VoipMsApiError, VoipMsRestClient
 from .const import CONF_DEFAULT_DID, DOMAIN
+from .validation import validate_phone_number
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,6 +36,13 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
+def _validate_default_did(user_input: dict[str, Any]) -> None:
+    """Validate default DID when present; raise ValueError if invalid."""
+    if CONF_DEFAULT_DID not in user_input:
+        return
+    validate_phone_number(user_input[CONF_DEFAULT_DID])
+
+
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
 
@@ -52,7 +60,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         raise CannotConnect from ex
 
     if result.get("status") != "success":
-        _LOGGER.warning("VoIP.ms auth failed: %s", result)
+        _LOGGER.warning("VoIP.ms auth failed with status=%s", result.get("status"))
         status = result.get("status")
         error_key = API_STATUS_ERRORS.get(status, "invalid_auth")
         raise InvalidAuth(error_key)
@@ -75,21 +83,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
 
             try:
-                info = await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidAuth as err:
-                errors["base"] = err.translation_key
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
+                _validate_default_did(user_input)
+            except ValueError:
+                errors[CONF_DEFAULT_DID] = "invalid_did"
             else:
-                manage_webhook = user_input.pop("manage_webhook", True)
-                return self.async_create_entry(
-                    title=info["title"],
-                    data=user_input,
-                    options={"manage_webhook": manage_webhook},
-                )
+                try:
+                    info = await validate_input(self.hass, user_input)
+                except CannotConnect:
+                    errors["base"] = "cannot_connect"
+                except InvalidAuth as err:
+                    errors["base"] = err.translation_key
+                except Exception:  # pylint: disable=broad-except
+                    _LOGGER.exception("Unexpected exception")
+                    errors["base"] = "unknown"
+                else:
+                    manage_webhook = user_input.pop("manage_webhook", True)
+                    return self.async_create_entry(
+                        title=info["title"],
+                        data=user_input,
+                        options={"manage_webhook": manage_webhook},
+                    )
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
@@ -106,22 +119,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         entry = self._get_reauth_entry()
         if user_input is not None:
-            data = {**entry.data, **user_input}
             try:
-                await validate_input(self.hass, data)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidAuth as err:
-                errors["base"] = err.translation_key
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
+                _validate_default_did(user_input)
+            except ValueError:
+                errors[CONF_DEFAULT_DID] = "invalid_did"
             else:
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data_updates=user_input,
-                    reason="reauth_successful",
-                )
+                data = {**entry.data, **user_input}
+                try:
+                    await validate_input(self.hass, data)
+                except CannotConnect:
+                    errors["base"] = "cannot_connect"
+                except InvalidAuth as err:
+                    errors["base"] = err.translation_key
+                except Exception:
+                    _LOGGER.exception("Unexpected exception")
+                    errors["base"] = "unknown"
+                else:
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data_updates=user_input,
+                        reason="reauth_successful",
+                    )
 
         return self.async_show_form(
             step_id="reauth_confirm",
@@ -145,26 +163,31 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         errors = {}
         if user_input is not None:
-            data = {**entry.data, **user_input}
             try:
-                await validate_input(self.hass, data)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidAuth as err:
-                errors["base"] = err.translation_key
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
+                _validate_default_did(user_input)
+            except ValueError:
+                errors[CONF_DEFAULT_DID] = "invalid_did"
             else:
-                manage_webhook = user_input.pop(
-                    "manage_webhook", entry.options.get("manage_webhook", True)
-                )
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data_updates=user_input,
-                    options={"manage_webhook": manage_webhook},
-                    reason="reconfigure_successful",
-                )
+                data = {**entry.data, **user_input}
+                try:
+                    await validate_input(self.hass, data)
+                except CannotConnect:
+                    errors["base"] = "cannot_connect"
+                except InvalidAuth as err:
+                    errors["base"] = err.translation_key
+                except Exception:
+                    _LOGGER.exception("Unexpected exception")
+                    errors["base"] = "unknown"
+                else:
+                    manage_webhook = user_input.pop(
+                        "manage_webhook", entry.options.get("manage_webhook", True)
+                    )
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data_updates=user_input,
+                        options={"manage_webhook": manage_webhook},
+                        reason="reconfigure_successful",
+                    )
 
         schema = vol.Schema(
             {
