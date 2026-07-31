@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/andrewtryder/ha-voipms/compare/v2.0.0...v2.1.0) (2026-07-31)
+
+
+### Features
+
+* **hardening:** add system health, SMS validation, and API bounds ([#55](https://github.com/andrewtryder/ha-voipms/issues/55)) ([5b3c6d1](https://github.com/andrewtryder/ha-voipms/commit/5b3c6d130a8cc902cd5a48a8e58e9c05c68a5de0))
+
 ## [2.0.0](https://github.com/andrewtryder/ha-voipms/compare/v1.8.0...v2.0.0) (2026-07-30)
 
 
