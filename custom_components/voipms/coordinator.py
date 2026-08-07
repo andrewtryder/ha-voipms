@@ -134,8 +134,8 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                             if account_name in old_regs:
                                 registrations[account_name] = old_regs[account_name]
                     data["registrations"] = registrations
-            elif status == "no_subaccounts":
-                pass
+            elif status in ("no_subaccounts", "no_account"):
+                data["registrations"] = {}
             else:
                 raise UpdateFailed(f"Failed to fetch subaccounts: {subs_result}")
         except (VoipMsApiError, ValueError) as ex:
