@@ -160,8 +160,10 @@ async def process_inbound_sms(
     # Log masked numbers at INFO level to protect PII
     _LOGGER.info(
         "Processing inbound SMS: sender=%s, recipient=%s, message_id=%s",
-        mask_phone_number(sms.sender),
-        mask_phone_number(sms.recipient),
+        mask_phone_number(sms.sender),  # codeql[py/clear-text-logging-sensitive-data]
+        mask_phone_number(
+            sms.recipient
+        ),  # codeql[py/clear-text-logging-sensitive-data]
         sms.message_id,
     )
 
@@ -190,8 +192,12 @@ async def process_call(
     _LOGGER.info(
         "Processing %s call: caller=%s, destination=%s, unique_id=%s",
         call.direction,
-        mask_phone_number(call.caller_id),
-        mask_phone_number(call.destination),
+        mask_phone_number(
+            call.caller_id
+        ),  # codeql[py/clear-text-logging-sensitive-data]
+        mask_phone_number(
+            call.destination
+        ),  # codeql[py/clear-text-logging-sensitive-data]
         call.unique_id,
     )
 
