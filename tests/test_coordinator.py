@@ -180,3 +180,80 @@ async def test_coordinator_processes_new_calls_on_subsequent_refresh(
     assert len(logbook_events) == 1
     assert "Outbound call from 5551234567 to 5559876543" in logbook_events[0]["message"]
     assert logbook_events[0]["entity_id"] == "sensor.voip_ms_outbound_calls_24h"
+
+
+async def test_coordinator_handles_no_account_status(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test coordinator treats 'no_account' as zero subaccounts without failing setup."""
+    mock_voipms_client.get_sub_accounts.return_value = {
+        "status": "no_account",
+        "message": "There are no accounts",
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state == ConfigEntryState.LOADED
+    coordinator = entry.runtime_data.coordinator
+    assert coordinator.data["registrations"] == {}
+
+
+async def test_coordinator_clears_cached_registrations_on_no_account(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test coordinator clears cached registrations when get_sub_accounts returns no_account."""
+    mock_voipms_client.get_sub_accounts.return_value = {
+        "status": "success",
+        "subaccounts": [
+            {
+                "account": "100000_sub1",
+                "description": "Subaccount 1",
+                "device_type": "SIP",
+                "callerid_number": "5551234567",
+                "protocol": "SIP",
+            }
+        ],
+    }
+    mock_voipms_client.get_registration_status.return_value = {
+        "status": "success",
+        "registered": "yes",
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = entry.runtime_data.coordinator
+    assert "100000_sub1" in coordinator.data["registrations"]
+
+    # Subsequent refresh returns no_account
+    mock_voipms_client.get_sub_accounts.return_value = {
+        "status": "no_account",
+        "message": "There are no accounts",
+    }
+
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    assert coordinator.last_update_success
+    assert coordinator.data["registrations"] == {}
