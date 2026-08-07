@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/andrewtryder/ha-voipms/compare/v2.1.0...v2.1.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **coordinator:** handle no_account status from getSubAccounts ([#60](https://github.com/andrewtryder/ha-voipms/issues/60)) ([668ebde](https://github.com/andrewtryder/ha-voipms/commit/668ebde206297a25d0578f7e9fb71710dd730aa6))
+
 ## [2.1.0](https://github.com/andrewtryder/ha-voipms/compare/v2.0.0...v2.1.0) (2026-07-31)
 
 
