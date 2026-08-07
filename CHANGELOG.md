@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.2](https://github.com/andrewtryder/ha-voipms/compare/v2.1.1...v2.1.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **security:** resolve CodeQL scanning alerts ([f6aaeec](https://github.com/andrewtryder/ha-voipms/commit/f6aaeecfac5e0db5f40e81f72a060e9ce07ab354))
+
 ## [2.1.1](https://github.com/andrewtryder/ha-voipms/compare/v2.1.0...v2.1.1) (2026-08-07)
 
 
