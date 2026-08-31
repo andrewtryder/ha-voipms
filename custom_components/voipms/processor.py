@@ -157,15 +157,7 @@ async def process_inbound_sms(
     hass: HomeAssistant, entry: VoipmsConfigEntry, sms: InboundSms
 ) -> None:
     """Process an inbound SMS message from VoIP.ms."""
-    # Log masked numbers at INFO level to protect PII
-    _LOGGER.info(
-        "Processing inbound SMS: sender=%s, recipient=%s, message_id=%s",
-        mask_phone_number(sms.sender),  # codeql[py/clear-text-logging-sensitive-data]
-        mask_phone_number(
-            sms.recipient
-        ),  # codeql[py/clear-text-logging-sensitive-data]
-        sms.message_id,
-    )
+    _LOGGER.info("Processing inbound SMS: message_id=%s", sms.message_id)
 
     event_data = {
         **sms.to_event_data(),
@@ -190,14 +182,8 @@ async def process_call(
         else EVENT_OUTBOUND_CALL
     )
     _LOGGER.info(
-        "Processing %s call: caller=%s, destination=%s, unique_id=%s",
+        "Processing %s call: unique_id=%s",
         call.direction,
-        mask_phone_number(
-            call.caller_id
-        ),  # codeql[py/clear-text-logging-sensitive-data]
-        mask_phone_number(
-            call.destination
-        ),  # codeql[py/clear-text-logging-sensitive-data]
         call.unique_id,
     )
 
