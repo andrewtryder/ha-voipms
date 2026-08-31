@@ -73,10 +73,8 @@ async def async_register_inbound_sms_webhook(
             try:
                 sms = InboundSms.parse_inbound_sms(payload)
                 _LOGGER.info(
-                    "Inbound SMS validated: message_id=%s, sender=%s, recipient=%s",
+                    "Inbound SMS validated: message_id=%s",
                     sms.message_id,
-                    sms.sender,
-                    sms.recipient,
                 )
             except InboundSmsValidationError as e:
                 _LOGGER.warning(
