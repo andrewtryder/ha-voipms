@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.3](https://github.com/andrewtryder/ha-voipms/compare/v2.1.2...v2.1.3) (2026-08-31)
+
+
+### Bug Fixes
+
+* **security:** resolve clear-text logging of sensitive data ([#71](https://github.com/andrewtryder/ha-voipms/issues/71)) ([a65d3c9](https://github.com/andrewtryder/ha-voipms/commit/a65d3c9ff93a47c79dc272bee7e749104706afb5))
+
 ## [2.1.2](https://github.com/andrewtryder/ha-voipms/compare/v2.1.1...v2.1.2) (2026-08-07)
 
 
