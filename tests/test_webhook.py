@@ -13,6 +13,7 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util.aiohttp import MockRequest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.voipms.api import VoipMsApiError
 from custom_components.voipms.const import (
     CONF_DEFAULT_DID,
     DOMAIN,
@@ -56,7 +57,7 @@ async def test_webhook_registers_with_get_method(
 async def test_set_sms_receives_callback_url_template(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:
-    """Test VoIP.ms setSMS receives URL with query-parameter templates."""
+    """Test VoIP.ms setSMS receives URL with metadata query parameters only."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={
@@ -78,13 +79,16 @@ async def test_set_sms_receives_callback_url_template(
     assert call_kwargs["url_callback"] == expected_url
     assert "to={TO}" in call_kwargs["url_callback"]
     assert "from={FROM}" in call_kwargs["url_callback"]
-    assert "message={MESSAGE}" in call_kwargs["url_callback"]
+    assert "id={ID}" in call_kwargs["url_callback"]
+    assert "date={TIMESTAMP}" in call_kwargs["url_callback"]
+    assert "{MESSAGE}" not in call_kwargs["url_callback"]
+    assert "message=" not in call_kwargs["url_callback"]
 
 
 async def test_inbound_sms_webhook_fires_event_on_get(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:
-    """Test GET webhook request fires voipms_inbound_sms with query data."""
+    """Test GET webhook request without message calls getSMS and fires voipms_inbound_sms."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={
@@ -111,13 +115,14 @@ async def test_inbound_sms_webhook_fires_event_on_get(
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
+        query_string="to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00",
     )
     response = await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
 
     assert response.status == 200
     assert response.text == "ok"
+    mock_voipms_client.get_sms.assert_called_once_with(sms="42")
     assert len(events) == 1
     assert events[0]["to"] == "5551234567"
     assert events[0]["from"] == "5559876543"
@@ -125,6 +130,95 @@ async def test_inbound_sms_webhook_fires_event_on_get(
     assert events[0]["date"] == "2024-01-01 12:00:00"
     assert events[0]["account"] == "test_user"
     assert events[0]["config_entry_id"] == entry.entry_id
+
+
+async def test_inbound_sms_webhook_multiline_and_unicode_message(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test inbound SMS with multiline CR/LF and Unicode content is preserved."""
+    multiline_text = "first line\r\n\r\nsecond line \U0001f600"
+    mock_voipms_client.get_sms.return_value = {
+        "status": "success",
+        "sms": [
+            {
+                "id": "100",
+                "date": "2024-01-01 12:00:00",
+                "type": "1",
+                "did": "5551234567",
+                "contact": "5559876543",
+                "message": multiline_text,
+            }
+        ],
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&id=100&date=2024-01-01%2012:00:00",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 200
+    mock_voipms_client.get_sms.assert_called_once_with(sms="100")
+    assert len(events) == 1
+    assert events[0]["message"] == multiline_text
+
+
+async def test_legacy_inbound_sms_webhook_with_message_skips_get_sms(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test legacy webhook containing valid message is processed without calling getSMS."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&message=legacy_hello&id=42&date=2024-01-01%2012:00:00",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 200
+    mock_voipms_client.get_sms.assert_not_called()
+    assert len(events) == 1
+    assert events[0]["message"] == "legacy_hello"
 
 
 async def test_inbound_sms_webhook_writes_logbook_entry(
@@ -157,7 +251,7 @@ async def test_inbound_sms_webhook_writes_logbook_entry(
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
+        query_string="to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00",
     )
     await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
@@ -194,7 +288,7 @@ async def test_inbound_sms_webhook_creates_persistent_notification(
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
+        query_string="to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00",
     )
     await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
@@ -209,7 +303,7 @@ async def test_inbound_sms_webhook_creates_persistent_notification(
 async def test_inbound_sms_webhook_deduplication(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:
-    """Test GET webhook request ignores duplicate messages."""
+    """Test GET webhook request ignores duplicate messages without repeat API calls."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={
@@ -236,17 +330,177 @@ async def test_inbound_sms_webhook_deduplication(
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&message=hello&id=42&date=2024-01-01%2012:00:00",
+        query_string="to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00",
     )
     response = await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
 
     assert response.status == 200
     assert len(events) == 1
+    assert mock_voipms_client.get_sms.call_count == 1
 
-    # Second request with the same ID should be ignored (200 OK, but no event)
+    # Second request with the same ID should be ignored (200 OK, no extra event, no extra API call)
     response2 = await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
 
     assert response2.status == 200
     assert len(events) == 1
+    assert mock_voipms_client.get_sms.call_count == 1
+
+
+async def test_inbound_sms_webhook_api_failure_returns_500(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test transient API lookup failure returns 500 and allows subsequent retry."""
+    mock_voipms_client.get_sms.side_effect = VoipMsApiError("Network timeout")
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 500
+    assert len(events) == 0
+
+    # Simulate subsequent retry where API call succeeds
+    mock_voipms_client.get_sms.side_effect = None
+    mock_voipms_client.get_sms.return_value = {
+        "status": "success",
+        "sms": [
+            {
+                "id": "42",
+                "date": "2024-01-01 12:00:00",
+                "type": "1",
+                "did": "5551234567",
+                "contact": "5559876543",
+                "message": "hello",
+            }
+        ],
+    }
+
+    retry_response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert retry_response.status == 200
+    assert len(events) == 1
+
+
+async def test_inbound_sms_webhook_mismatched_or_malformed_record(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test mismatched or malformed retrieved SMS records are rejected gracefully."""
+    mock_voipms_client.get_sms.return_value = {
+        "status": "success",
+        "sms": [
+            {
+                "id": "999",  # Non-matching ID
+                "date": "2024-01-01 12:00:00",
+                "type": "1",
+                "did": "5551234567",
+                "contact": "5559876543",
+                "message": "other message",
+            }
+        ],
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 200
+    assert len(events) == 0
+
+    # Also test non-success status like no_sms
+    mock_voipms_client.get_sms.return_value = {"status": "no_sms"}
+    request2 = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&id=43&date=2024-01-01%2012:00:00",
+    )
+    response2 = await async_handle_webhook(hass, webhook_id, request2)
+    await hass.async_block_till_done()
+
+    assert response2.status == 200
+    assert len(events) == 0
+
+
+async def test_security_filter_blocks_crlf_query_and_allows_metadata_callback(
+    hass: HomeAssistant, hass_client_no_auth, mock_voipms_client
+) -> None:
+    """Regression test: security filter rejects query with CRLF but accepts metadata-only callback."""
+    assert await async_setup_component(hass, "http", {})
+    assert await async_setup_component(hass, "webhook", {})
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    client = await hass_client_no_auth()
+    webhook_id = f"voipms_{entry.entry_id}"
+
+    # Query with %0D%0A (CR/LF in message) is rejected by security filter with 400 Bad Request
+    crlf_url = f"/api/webhook/{webhook_id}?to=5551234567&from=5559876543&message=hello%0D%0Aworld&id=42&date=2024-01-01%2012:00:00"
+    resp_bad = await client.get(crlf_url)
+    assert resp_bad.status == 400
+
+    # New metadata-only query succeeds with 200 OK
+    clean_url = f"/api/webhook/{webhook_id}?to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00"
+    resp_good = await client.get(clean_url)
+    assert resp_good.status == 200
+    assert await resp_good.text() == "ok"

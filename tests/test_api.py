@@ -347,12 +347,81 @@ def test_get_registration_status_unexpected_registered() -> None:
             client.call("getRegistrationStatus")
 
 
+def test_get_sms() -> None:
+    """Test get_sms calls getSMS with sms parameter."""
+    client = VoipMsRestClient("user", "pass")
+    client.call = MagicMock(return_value={"status": "success", "sms": []})
+
+    client.get_sms(sms="12345")
+
+    client.call.assert_called_once_with("getSMS", sms="12345")
+
+
+def test_set_sms_includes_retry() -> None:
+    """Test set_sms passes url_callback_retry=1."""
+    client = VoipMsRestClient("user", "pass")
+    client.call = MagicMock(return_value={"status": "success"})
+
+    client.set_sms(did="5551234567", enable=1, url_callback="http://example.com")
+
+    client.call.assert_called_once_with(
+        "setSMS",
+        did="5551234567",
+        enable=1,
+        url_callback_enable=1,
+        url_callback="http://example.com",
+        url_callback_retry=1,
+    )
+
+
+def test_get_sms_valid_payload_list() -> None:
+    """Test getSMS with list payload is accepted."""
+    response = _response(
+        json.dumps(
+            {"status": "success", "sms": [{"id": "123", "message": "hi"}]}
+        ).encode()
+    )
+    client = VoipMsRestClient("user", "pass")
+
+    with _patch_urlopen(response):
+        result = client.call("getSMS", sms="123")
+
+    assert result["status"] == "success"
+    assert len(result["sms"]) == 1
+
+
+def test_get_sms_valid_payload_dict() -> None:
+    """Test getSMS with dict payload is accepted."""
+    response = _response(
+        json.dumps(
+            {"status": "success", "sms": {"0": {"id": "123", "message": "hi"}}}
+        ).encode()
+    )
+    client = VoipMsRestClient("user", "pass")
+
+    with _patch_urlopen(response):
+        result = client.call("getSMS", sms="123")
+
+    assert result["status"] == "success"
+
+
+def test_get_sms_invalid_payload() -> None:
+    """Test getSMS with invalid payload is rejected."""
+    response = _response(json.dumps({"status": "success", "sms": "invalid"}).encode())
+    client = VoipMsRestClient("user", "pass")
+
+    with _patch_urlopen(response):
+        with pytest.raises(VoipMsApiError, match="unexpected response shape"):
+            client.call("getSMS", sms="123")
+
+
 @pytest.mark.parametrize(
     ("method", "payload"),
     [
         ("getCDR", {"status": "no_cdr"}),
         ("getVoicemails", {"status": "no_voicemails"}),
         ("getSubAccounts", {"status": "no_subaccounts"}),
+        ("getSMS", {"status": "no_sms"}),
     ],
 )
 def test_valid_no_data_responses(method: str, payload: dict) -> None:

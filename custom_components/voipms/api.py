@@ -23,6 +23,7 @@ _NO_DATA_STATUSES = frozenset(
         "no_cdr",
         "no_voicemails",
         "no_subaccounts",
+        "no_sms",
     }
 )
 
@@ -68,6 +69,11 @@ def _validate_get_registration_status(result: dict[str, Any]) -> bool:
     return result.get("registered") in {"yes", "no"}
 
 
+def _validate_get_sms(result: dict[str, Any]) -> bool:
+    """Validate getSMS success payload."""
+    return _is_list_or_dict(result.get("sms"))
+
+
 _SUCCESS_VALIDATORS: dict[str, Callable[[dict[str, Any]], bool]] = {
     "getBalance": _validate_get_balance,
     "getCDR": _validate_get_cdr,
@@ -75,6 +81,7 @@ _SUCCESS_VALIDATORS: dict[str, Callable[[dict[str, Any]], bool]] = {
     "getVoicemailMessages": _validate_get_voicemail_messages,
     "getSubAccounts": _validate_get_sub_accounts,
     "getRegistrationStatus": _validate_get_registration_status,
+    "getSMS": _validate_get_sms,
 }
 
 
@@ -243,6 +250,10 @@ class VoipMsRestClient:
             failed=1,
         )
 
+    def get_sms(self, *, sms: str | int) -> dict[str, Any]:
+        """Fetch SMS details by message ID."""
+        return self.call("getSMS", sms=str(sms))
+
     def send_sms(self, *, did: str, dst: str, message: str) -> dict[str, Any]:
         """Send a text message."""
         return self.call("sendSMS", did=did, dst=dst, message=message)
@@ -255,6 +266,7 @@ class VoipMsRestClient:
             enable=enable,
             url_callback_enable=1,
             url_callback=url_callback,
+            url_callback_retry=1,
         )
 
     def get_voicemails(self) -> dict[str, Any]:

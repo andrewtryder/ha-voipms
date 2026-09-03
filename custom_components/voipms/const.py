@@ -34,9 +34,7 @@ DIRECTION_INBOUND = "inbound"
 DIRECTION_OUTBOUND = "outbound"
 DIRECTION_UNKNOWN = "unknown"
 
-WEBHOOK_CALLBACK_QUERY = (
-    "to={TO}&from={FROM}&message={MESSAGE}&id={ID}&date={TIMESTAMP}"
-)
+WEBHOOK_CALLBACK_QUERY = "to={TO}&from={FROM}&id={ID}&date={TIMESTAMP}"
 
 
 def build_webhook_callback_url(base_url: str, webhook_id: str) -> str:
