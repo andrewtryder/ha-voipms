@@ -27,6 +27,56 @@ _LOGGER = logging.getLogger(__name__)
 MAX_PROCESSED_IDS = 1000
 
 
+def _extract_sms_records(result: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract SMS record dictionaries from a getSMS result payload."""
+    sms_data = result.get("sms")
+    if isinstance(sms_data, dict):
+        return [rec for rec in sms_data.values() if isinstance(rec, dict)]
+    if isinstance(sms_data, list):
+        return [rec for rec in sms_data if isinstance(rec, dict)]
+    return []
+
+
+def _find_matching_sms_record(
+    records: list[dict[str, Any]], msg_id: str
+) -> dict[str, Any] | None:
+    """Find the SMS record matching the given message ID."""
+    for rec in records:
+        if str(rec.get("id")) == str(msg_id):
+            return rec
+    return None
+
+
+def _build_hydrated_sms_payload(
+    record: dict[str, Any], msg_id: str
+) -> dict[str, str] | None:
+    """Build and validate an inbound SMS payload from an authenticated provider record.
+
+    Returns the payload dictionary if all required fields are present and valid,
+    or None if the record is malformed.
+    """
+    rec_id = record.get("id")
+    if rec_id is None or str(rec_id) != str(msg_id):
+        return None
+
+    did = record.get("did")
+    contact = record.get("contact")
+    date = record.get("date")
+    message = record.get("message")
+
+    for val in (did, contact, date, message):
+        if not isinstance(val, str) or not val.strip():
+            return None
+
+    return {
+        InboundSms.FIELD_ID: str(rec_id),
+        InboundSms.FIELD_TO: str(did).strip(),
+        InboundSms.FIELD_FROM: str(contact).strip(),
+        InboundSms.FIELD_DATE: str(date).strip(),
+        InboundSms.FIELD_MESSAGE: str(message).strip(),
+    }
+
+
 def _set_webhook_status(
     entry: VoipmsConfigEntry,
     status: WebhookRegistrationStatus,
@@ -98,7 +148,11 @@ async def async_register_inbound_sms_webhook(
 
             # Hydrate message from VoIP.ms REST API if not already present
             raw_message = payload.get(InboundSms.FIELD_MESSAGE)
-            if not isinstance(raw_message, str) or not raw_message.strip():
+            is_legacy = isinstance(raw_message, str) and bool(raw_message.strip())
+
+            if is_legacy:
+                candidate_payload = payload
+            else:
                 try:
 
                     def fetch_sms() -> dict[str, Any]:
@@ -115,7 +169,7 @@ async def async_register_inbound_sms_webhook(
                         msg_id,
                         err,
                     )
-                    return web.Response(status=500)
+                    return web.Response(status=503)
 
                 if result.get("status") != "success":
                     _LOGGER.warning(
@@ -123,45 +177,38 @@ async def async_register_inbound_sms_webhook(
                         result.get("status"),
                         msg_id,
                     )
-                    return web.Response(text="ok", status=200)
+                    return web.Response(status=503)
 
-                sms_data = result.get("sms")
-                if isinstance(sms_data, dict):
-                    records = list(sms_data.values())
-                elif isinstance(sms_data, list):
-                    records = sms_data
-                else:
-                    records = []
-
-                matching_record = None
-                for rec in records:
-                    if isinstance(rec, dict) and str(rec.get("id")) == str(msg_id):
-                        matching_record = rec
-                        break
-
+                records = _extract_sms_records(result)
+                matching_record = _find_matching_sms_record(records, msg_id)
                 if not matching_record:
                     _LOGGER.warning(
                         "VoIP.ms API did not return a matching record for message_id=%s",
                         msg_id,
                     )
-                    return web.Response(text="ok", status=200)
+                    return web.Response(status=503)
 
-                retrieved_message = matching_record.get("message")
-                if (
-                    not isinstance(retrieved_message, str)
-                    or not retrieved_message.strip()
-                ):
+                # Validate inbound message type (type="1" is inbound in VoIP.ms)
+                record_type = matching_record.get("type")
+                if record_type is not None and str(record_type) != "1":
                     _LOGGER.warning(
-                        "Retrieved SMS record for message_id=%s has missing or empty message",
+                        "Retrieved SMS record for message_id=%s is not an inbound message (type=%s)",
                         msg_id,
+                        record_type,
                     )
                     return web.Response(text="ok", status=200)
 
-                payload[InboundSms.FIELD_MESSAGE] = retrieved_message
+                candidate_payload = _build_hydrated_sms_payload(matching_record, msg_id)
+                if not candidate_payload:
+                    _LOGGER.warning(
+                        "Retrieved SMS record for message_id=%s contains missing or invalid fields",
+                        msg_id,
+                    )
+                    return web.Response(status=503)
 
             # Validate and parse payload
             try:
-                sms = InboundSms.parse_inbound_sms(payload)
+                sms = InboundSms.parse_inbound_sms(candidate_payload)
                 _LOGGER.info(
                     "Inbound SMS validated: message_id=%s",
                     sms.message_id,
@@ -170,9 +217,11 @@ async def async_register_inbound_sms_webhook(
                 _LOGGER.warning(
                     "Inbound SMS validation failed: %s, payload_keys=%s",
                     e,
-                    list(payload.keys()),
+                    list(candidate_payload.keys()),
                 )
-                # Acknowledge with 200 OK to prevent VoIP.ms retries
+                if not is_legacy:
+                    return web.Response(status=503)
+                # Acknowledge legacy malformed callbacks with 200 OK to prevent infinite retries
                 return web.Response(text="ok", status=200)
 
             # Validate recipient DID

@@ -2,6 +2,7 @@
 
 from unittest.mock import patch
 
+import pytest
 from aiohttp.hdrs import METH_GET, METH_POST
 from homeassistant.components.persistent_notification import (
     _async_get_or_create_notifications,
@@ -132,6 +133,62 @@ async def test_inbound_sms_webhook_fires_event_on_get(
     assert events[0]["config_entry_id"] == entry.entry_id
 
 
+async def test_inbound_sms_webhook_authoritative_provider_metadata(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test authenticated getSMS metadata overrides forged callback query parameters."""
+    mock_voipms_client.get_sms.return_value = {
+        "status": "success",
+        "sms": [
+            {
+                "id": "42",
+                "did": "5551234567",
+                "contact": "5559876543",
+                "date": "2026-09-03 14:57:28",
+                "message": "hello",
+                "type": "1",
+            }
+        ],
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    # Callback claims forged from, to, and date
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=2222222222&from=1111111111&id=42&date=1999-01-01%2000:00:00",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 200
+    mock_voipms_client.get_sms.assert_called_once_with(sms="42")
+    assert len(events) == 1
+    # Event uses provider data, not callback data
+    assert events[0]["to"] == "5551234567"
+    assert events[0]["from"] == "5559876543"
+    assert events[0]["date"] == "2026-09-03 14:57:28"
+    assert events[0]["message"] == "hello"
+
+
 async def test_inbound_sms_webhook_multiline_and_unicode_message(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:
@@ -219,6 +276,43 @@ async def test_legacy_inbound_sms_webhook_with_message_skips_get_sms(
     mock_voipms_client.get_sms.assert_not_called()
     assert len(events) == 1
     assert events[0]["message"] == "legacy_hello"
+
+
+async def test_legacy_inbound_sms_webhook_validation_failure_returns_200(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test legacy webhook with invalid payload returns 200 OK without calling getSMS."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    # Invalid date format in legacy callback
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&message=legacy_hello&id=42&date=invalid-date",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 200
+    mock_voipms_client.get_sms.assert_not_called()
+    assert len(events) == 0
 
 
 async def test_inbound_sms_webhook_writes_logbook_entry(
@@ -348,10 +442,10 @@ async def test_inbound_sms_webhook_deduplication(
     assert mock_voipms_client.get_sms.call_count == 1
 
 
-async def test_inbound_sms_webhook_api_failure_returns_500(
+async def test_inbound_sms_webhook_api_failure_returns_503(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:
-    """Test transient API lookup failure returns 500 and allows subsequent retry."""
+    """Test transient API lookup failure returns 503 and allows subsequent retry."""
     mock_voipms_client.get_sms.side_effect = VoipMsApiError("Network timeout")
 
     entry = MockConfigEntry(
@@ -381,8 +475,10 @@ async def test_inbound_sms_webhook_api_failure_returns_500(
     response = await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
 
-    assert response.status == 500
+    assert response.status == 503
     assert len(events) == 0
+    # Failed attempt must not be cached as processed
+    assert "42" not in entry.runtime_data.processed_sms_ids
 
     # Simulate subsequent retry where API call succeeds
     mock_voipms_client.get_sms.side_effect = None
@@ -405,22 +501,258 @@ async def test_inbound_sms_webhook_api_failure_returns_500(
 
     assert retry_response.status == 200
     assert len(events) == 1
+    assert "42" in entry.runtime_data.processed_sms_ids
 
 
-async def test_inbound_sms_webhook_mismatched_or_malformed_record(
+@pytest.mark.parametrize(
+    ("desc", "result_payload"),
+    [
+        ("api_limit_exceeded", {"status": "api_limit_exceeded"}),
+        ("method_maintenance", {"status": "method_maintenance"}),
+        ("no_sms", {"status": "no_sms"}),
+        ("empty_sms_list", {"status": "success", "sms": []}),
+        (
+            "mismatched_id",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "999",
+                        "did": "5551234567",
+                        "contact": "5559876543",
+                        "date": "2024-01-01 12:00:00",
+                        "message": "hello",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "missing_message",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": "5551234567",
+                        "contact": "5559876543",
+                        "date": "2024-01-01 12:00:00",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "empty_message",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": "5551234567",
+                        "contact": "5559876543",
+                        "date": "2024-01-01 12:00:00",
+                        "message": "",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "whitespace_message",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": "5551234567",
+                        "contact": "5559876543",
+                        "date": "2024-01-01 12:00:00",
+                        "message": "   \r\n  ",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "missing_did",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "contact": "5559876543",
+                        "date": "2024-01-01 12:00:00",
+                        "message": "hello",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "empty_did",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": "",
+                        "contact": "5559876543",
+                        "date": "2024-01-01 12:00:00",
+                        "message": "hello",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "missing_contact",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": "5551234567",
+                        "date": "2024-01-01 12:00:00",
+                        "message": "hello",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "empty_contact",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": "5551234567",
+                        "contact": "   ",
+                        "date": "2024-01-01 12:00:00",
+                        "message": "hello",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "missing_date",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": "5551234567",
+                        "contact": "5559876543",
+                        "message": "hello",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "invalid_date_format",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": "5551234567",
+                        "contact": "5559876543",
+                        "date": "invalid-timestamp",
+                        "message": "hello",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "invalid_did_type",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": 5551234567,
+                        "contact": "5559876543",
+                        "date": "2024-01-01 12:00:00",
+                        "message": "hello",
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+        (
+            "invalid_message_type",
+            {
+                "status": "success",
+                "sms": [
+                    {
+                        "id": "42",
+                        "did": "5551234567",
+                        "contact": "5559876543",
+                        "date": "2024-01-01 12:00:00",
+                        "message": 12345,
+                        "type": "1",
+                    }
+                ],
+            },
+        ),
+    ],
+)
+async def test_inbound_sms_webhook_retryable_hydration_failures(
+    hass: HomeAssistant, mock_voipms_client, desc: str, result_payload: dict
+) -> None:
+    """Test transient or unresolved hydration failures return 503 Service Unavailable."""
+    mock_voipms_client.get_sms.return_value = result_payload
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 503, f"Failed for case: {desc}"
+    assert len(events) == 0
+    assert "42" not in entry.runtime_data.processed_sms_ids
+
+
+async def test_inbound_sms_webhook_non_inbound_type_returns_200(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:
-    """Test mismatched or malformed retrieved SMS records are rejected gracefully."""
+    """Test matching record with non-inbound type is safely rejected with 200 OK."""
     mock_voipms_client.get_sms.return_value = {
         "status": "success",
         "sms": [
             {
-                "id": "999",  # Non-matching ID
-                "date": "2024-01-01 12:00:00",
-                "type": "1",
+                "id": "42",
                 "did": "5551234567",
                 "contact": "5559876543",
-                "message": "other message",
+                "date": "2024-01-01 12:00:00",
+                "message": "outbound sms",
+                "type": "2",  # Outbound message
             }
         ],
     }
@@ -455,20 +787,150 @@ async def test_inbound_sms_webhook_mismatched_or_malformed_record(
     assert response.status == 200
     assert len(events) == 0
 
-    # Also test non-success status like no_sms
-    mock_voipms_client.get_sms.return_value = {"status": "no_sms"}
-    request2 = MockRequest(
+
+async def test_inbound_sms_webhook_configured_did_mismatch_returns_200(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test matching record with mismatched DID is rejected with 200 OK."""
+    mock_voipms_client.get_sms.return_value = {
+        "status": "success",
+        "sms": [
+            {
+                "id": "42",
+                "did": "5559999999",  # Different DID
+                "contact": "5559876543",
+                "date": "2024-01-01 12:00:00",
+                "message": "hello",
+                "type": "1",
+            }
+        ],
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
         content=b"",
         mock_source="test",
         headers={},
         method="GET",
-        query_string="to=5551234567&from=5559876543&id=43&date=2024-01-01%2012:00:00",
+        query_string="to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00",
     )
-    response2 = await async_handle_webhook(hass, webhook_id, request2)
+    response = await async_handle_webhook(hass, webhook_id, request)
     await hass.async_block_till_done()
 
-    assert response2.status == 200
+    assert response.status == 200
     assert len(events) == 0
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "from=5559876543&id=42&date=2024-01-01%2012:00:00",  # missing to
+        "to=5551234567&id=42&date=2024-01-01%2012:00:00",  # missing from
+        "to=5551234567&from=5559876543&date=2024-01-01%2012:00:00",  # missing id
+        "to=5551234567&from=5559876543&id=42",  # missing date
+        "to=&from=5559876543&id=42&date=2024-01-01%2012:00:00",  # empty to
+    ],
+)
+async def test_inbound_sms_webhook_missing_required_metadata_returns_200(
+    hass: HomeAssistant, mock_voipms_client, query: str
+) -> None:
+    """Test callback with missing or empty metadata fields returns 200 OK without calling getSMS."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string=query,
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 200
+    mock_voipms_client.get_sms.assert_not_called()
+    assert len(events) == 0
+
+
+async def test_inbound_sms_webhook_dict_sms_collection_succeeds(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test getSMS response where sms is formatted as a dict of records."""
+    mock_voipms_client.get_sms.return_value = {
+        "status": "success",
+        "sms": {
+            "0": {
+                "id": "42",
+                "did": "5551234567",
+                "contact": "5559876543",
+                "date": "2024-01-01 12:00:00",
+                "message": "dict message",
+                "type": "1",
+            }
+        },
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    events: list = []
+    hass.bus.async_listen(EVENT_INBOUND_SMS, lambda e: events.append(e.data))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    webhook_id = f"voipms_{entry.entry_id}"
+    request = MockRequest(
+        content=b"",
+        mock_source="test",
+        headers={},
+        method="GET",
+        query_string="to=5551234567&from=5559876543&id=42&date=2024-01-01%2012:00:00",
+    )
+    response = await async_handle_webhook(hass, webhook_id, request)
+    await hass.async_block_till_done()
+
+    assert response.status == 200
+    assert len(events) == 1
+    assert events[0]["message"] == "dict message"
 
 
 async def test_security_filter_blocks_crlf_query_and_allows_metadata_callback(
