@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.5](https://github.com/andrewtryder/ha-voipms/compare/v2.1.4...v2.1.5) (2026-09-03)
+
+
+### Bug Fixes
+
+* **webhook:** retry failed SMS hydration ([#78](https://github.com/andrewtryder/ha-voipms/issues/78)) ([5d08294](https://github.com/andrewtryder/ha-voipms/commit/5d082947bc2204bae95622b10569024508f5d9cd))
+
 ## [2.1.4](https://github.com/andrewtryder/ha-voipms/compare/v2.1.3...v2.1.4) (2026-09-03)
 
 
