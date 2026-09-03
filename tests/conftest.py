@@ -31,6 +31,19 @@ def mock_voipms_client():
     }
     mock_instance.set_sms.return_value = {"status": "success"}
     mock_instance.send_sms.return_value = {"status": "success"}
+    mock_instance.get_sms.return_value = {
+        "status": "success",
+        "sms": [
+            {
+                "id": "42",
+                "date": "2024-01-01 12:00:00",
+                "type": "1",
+                "did": "5551234567",
+                "contact": "5559876543",
+                "message": "hello",
+            }
+        ],
+    }
     mock_instance.get_voicemails.return_value = {
         "status": "success",
         "voicemails": [],

@@ -69,6 +69,96 @@ async def async_register_inbound_sms_webhook(
                 list(payload.keys()),
             )
 
+            # Validate required metadata fields present in all callbacks
+            required_fields = [
+                InboundSms.FIELD_FROM,
+                InboundSms.FIELD_TO,
+                InboundSms.FIELD_ID,
+                InboundSms.FIELD_DATE,
+            ]
+            missing_or_invalid = [
+                field
+                for field in required_fields
+                if not isinstance(payload.get(field), str) or not payload[field].strip()
+            ]
+            if missing_or_invalid:
+                _LOGGER.warning(
+                    "Inbound SMS webhook missing required metadata fields: %s, payload_keys=%s",
+                    missing_or_invalid,
+                    list(payload.keys()),
+                )
+                return web.Response(text="ok", status=200)
+
+            msg_id = payload[InboundSms.FIELD_ID]
+
+            # Deduplicate by message ID before making any external API calls
+            if msg_id in processed_cache:
+                _LOGGER.info("Duplicate SMS message_id=%s, skipping", msg_id)
+                return web.Response(text="ok", status=200)
+
+            # Hydrate message from VoIP.ms REST API if not already present
+            raw_message = payload.get(InboundSms.FIELD_MESSAGE)
+            if not isinstance(raw_message, str) or not raw_message.strip():
+                try:
+
+                    def fetch_sms() -> dict[str, Any]:
+                        client = VoipMsRestClient(
+                            entry.data[CONF_USERNAME],
+                            entry.data[CONF_PASSWORD],
+                        )
+                        return client.get_sms(sms=msg_id)
+
+                    result = await hass.async_add_executor_job(fetch_sms)
+                except VoipMsApiError as err:
+                    _LOGGER.warning(
+                        "VoIP.ms API failure retrieving SMS for message_id=%s: %s",
+                        msg_id,
+                        err,
+                    )
+                    return web.Response(status=500)
+
+                if result.get("status") != "success":
+                    _LOGGER.warning(
+                        "VoIP.ms API returned non-success status '%s' for message_id=%s",
+                        result.get("status"),
+                        msg_id,
+                    )
+                    return web.Response(text="ok", status=200)
+
+                sms_data = result.get("sms")
+                if isinstance(sms_data, dict):
+                    records = list(sms_data.values())
+                elif isinstance(sms_data, list):
+                    records = sms_data
+                else:
+                    records = []
+
+                matching_record = None
+                for rec in records:
+                    if isinstance(rec, dict) and str(rec.get("id")) == str(msg_id):
+                        matching_record = rec
+                        break
+
+                if not matching_record:
+                    _LOGGER.warning(
+                        "VoIP.ms API did not return a matching record for message_id=%s",
+                        msg_id,
+                    )
+                    return web.Response(text="ok", status=200)
+
+                retrieved_message = matching_record.get("message")
+                if (
+                    not isinstance(retrieved_message, str)
+                    or not retrieved_message.strip()
+                ):
+                    _LOGGER.warning(
+                        "Retrieved SMS record for message_id=%s has missing or empty message",
+                        msg_id,
+                    )
+                    return web.Response(text="ok", status=200)
+
+                payload[InboundSms.FIELD_MESSAGE] = retrieved_message
+
             # Validate and parse payload
             try:
                 sms = InboundSms.parse_inbound_sms(payload)
@@ -83,11 +173,6 @@ async def async_register_inbound_sms_webhook(
                     list(payload.keys()),
                 )
                 # Acknowledge with 200 OK to prevent VoIP.ms retries
-                return web.Response(text="ok", status=200)
-
-            # Deduplicate by message ID
-            if sms.message_id in processed_cache:
-                _LOGGER.info("Duplicate SMS message_id=%s, skipping", sms.message_id)
                 return web.Response(text="ok", status=200)
 
             # Validate recipient DID
