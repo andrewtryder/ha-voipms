@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.4](https://github.com/andrewtryder/ha-voipms/compare/v2.1.3...v2.1.4) (2026-09-03)
+
+
+### Bug Fixes
+
+* **webhook:** handle multiline inbound SMS callbacks ([#76](https://github.com/andrewtryder/ha-voipms/issues/76)) ([382fbed](https://github.com/andrewtryder/ha-voipms/commit/382fbedc7fc5c20b1bfeaac6e575116a22d30049))
+
 ## [2.1.3](https://github.com/andrewtryder/ha-voipms/compare/v2.1.2...v2.1.3) (2026-08-31)
 
 
