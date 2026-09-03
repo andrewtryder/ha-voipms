@@ -405,14 +405,35 @@ def test_get_sms_valid_payload_dict() -> None:
     assert result["status"] == "success"
 
 
-def test_get_sms_invalid_payload() -> None:
+@pytest.mark.parametrize(
+    "invalid_sms_val",
+    ["invalid", 123, None],
+)
+def test_get_sms_invalid_payload(invalid_sms_val) -> None:
     """Test getSMS with invalid payload is rejected."""
-    response = _response(json.dumps({"status": "success", "sms": "invalid"}).encode())
+    response = _response(
+        json.dumps({"status": "success", "sms": invalid_sms_val}).encode()
+    )
     client = VoipMsRestClient("user", "pass")
 
     with _patch_urlopen(response):
         with pytest.raises(VoipMsApiError, match="unexpected response shape"):
             client.call("getSMS", sms="123")
+
+
+@pytest.mark.parametrize(
+    "status",
+    ["api_limit_exceeded", "method_maintenance", "invalid_credentials"],
+)
+def test_get_sms_non_success_status(status: str) -> None:
+    """Test getSMS with non-success status returns status dictionary."""
+    response = _response(json.dumps({"status": status}).encode())
+    client = VoipMsRestClient("user", "pass")
+
+    with _patch_urlopen(response):
+        result = client.call("getSMS", sms="123")
+
+    assert result["status"] == status
 
 
 @pytest.mark.parametrize(
