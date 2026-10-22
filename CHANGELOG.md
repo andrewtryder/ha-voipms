@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.6](https://github.com/andrewtryder/ha-voipms/compare/v2.1.5...v2.1.6) (2026-10-22)
+
+
+### Bug Fixes
+
+* **config-flow:** reload entry when options change ([#105](https://github.com/andrewtryder/ha-voipms/issues/105)) ([4ac3d9b](https://github.com/andrewtryder/ha-voipms/commit/4ac3d9b3e4647aafde477021781bea61dcad1519))
+
 ## [2.1.5](https://github.com/andrewtryder/ha-voipms/compare/v2.1.4...v2.1.5) (2026-09-03)
 
 
