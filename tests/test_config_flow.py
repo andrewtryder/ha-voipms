@@ -4,8 +4,10 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms.api import VoipMsApiError
+from custom_components.voipms.config_flow import OptionsFlowHandler
 from custom_components.voipms.const import CONF_DEFAULT_DID, DOMAIN
 
 
@@ -168,3 +170,37 @@ async def test_form_valid_e164_default_did(
 
     assert result2["type"] == FlowResultType.CREATE_ENTRY
     assert result2["data"][CONF_DEFAULT_DID] == "+15551234567"
+
+
+async def test_options_flow_updates_manage_webhook(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test options flow updates manage_webhook via OptionsFlowWithReload."""
+    assert issubclass(OptionsFlowHandler, config_entries.OptionsFlowWithReload)
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="test_user",
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+        options={"manage_webhook": True},
+        unique_id="test_user",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == FlowResultType.FORM
+
+    result2 = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"manage_webhook": False},
+    )
+    await hass.async_block_till_done()
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.options["manage_webhook"] is False

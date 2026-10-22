@@ -151,9 +151,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
+    ) -> config_entries.OptionsFlowWithReload:
         """Create the options flow."""
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -212,15 +212,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-class OptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle an options flow for VoIP.ms."""
+class OptionsFlowHandler(config_entries.OptionsFlowWithReload):
+    """Handle an options flow for VoIP.ms.
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        try:
-            self.config_entry = config_entry
-        except AttributeError:
-            pass  # Provided by base class in HA 2024.12+
+    Reloads the config entry when options change so the manage_webhook
+    toggle takes effect immediately (no manual reload required).
+    """
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
