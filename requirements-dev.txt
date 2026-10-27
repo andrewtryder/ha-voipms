@@ -2,5 +2,5 @@ pytest
 pytest-asyncio
 pytest-homeassistant-custom-component
 voluptuous
-ruff==0.17.1
+ruff==0.17.2
 coverage
