@@ -6,12 +6,11 @@ Thank you for your interest in contributing to this project! We welcome contribu
 
 1. **Fork the repository** (if you're an external contributor) or create a feature branch.
 2. **Follow the Conventional Commits** standard for commit messages (`feat:`, `fix:`, `chore:`, `docs:`, etc.).
-3. **Run quality checks locally** before submitting a pull request:
-   - Format check
-   - Lint
-   - Typecheck (if applicable)
-   - Tests
-   - Build (if applicable)
+3. **Execute local validation** before submitting a pull request:
+   ```bash
+   ./scripts/validate-local.sh
+   ```
+   This runs pre-commit hooks, Ruff formatting & linting, frontend compilation, and pytest with statement coverage enforcement (>=90% gate).
 4. **Open a pull request** with a clear title and description of your changes.
 
 ## Pull request guidelines

@@ -11,12 +11,12 @@ while true; do
         echo "Home Assistant is ready!"
         break
     fi
-    
+
     if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
         echo "Error: Timeout waiting for Home Assistant to start."
         exit 1
     fi
-    
+
     sleep "$INTERVAL"
     ELAPSED=$((ELAPSED + INTERVAL))
 done

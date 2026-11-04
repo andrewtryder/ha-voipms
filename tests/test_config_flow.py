@@ -204,3 +204,161 @@ async def test_options_flow_updates_manage_webhook(
 
     assert result2["type"] == FlowResultType.CREATE_ENTRY
     assert entry.options["manage_webhook"] is False
+
+
+async def test_reconfigure_flow_success(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test successful reconfiguration flow."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="test_user",
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "old_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+        options={"manage_webhook": True},
+        unique_id="test_user",
+    )
+    entry.add_to_hass(hass)
+
+    result = await entry.start_reconfigure_flow(hass)
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_PASSWORD: "new_password",
+            CONF_DEFAULT_DID: "5559876543",
+            "manage_webhook": False,
+        },
+    )
+    await hass.async_block_till_done()
+
+    assert result2["type"] == FlowResultType.ABORT
+    assert result2["reason"] == "reconfigure_successful"
+    assert entry.data[CONF_PASSWORD] == "new_password"
+    assert entry.data[CONF_DEFAULT_DID] == "5559876543"
+    assert entry.options["manage_webhook"] is False
+
+
+async def test_reconfigure_flow_invalid_did(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test reconfiguration flow with invalid DID."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="test_user",
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "old_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+        unique_id="test_user",
+    )
+    entry.add_to_hass(hass)
+
+    result = await entry.start_reconfigure_flow(hass)
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_PASSWORD: "new_password",
+            CONF_DEFAULT_DID: "555-bad-did",
+        },
+    )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {CONF_DEFAULT_DID: "invalid_did"}
+
+
+async def test_reconfigure_flow_cannot_connect(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test reconfiguration flow handles connection errors."""
+    mock_voipms_client.get_balance.side_effect = VoipMsApiError("Connection error")
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="test_user",
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "old_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+        unique_id="test_user",
+    )
+    entry.add_to_hass(hass)
+
+    result = await entry.start_reconfigure_flow(hass)
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_PASSWORD: "new_password",
+            CONF_DEFAULT_DID: "5559876543",
+        },
+    )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "cannot_connect"}
+
+
+async def test_reconfigure_flow_invalid_auth(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test reconfiguration flow handles authentication errors."""
+    mock_voipms_client.get_balance.side_effect = None
+    mock_voipms_client.get_balance.return_value = {"status": "invalid_credentials"}
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="test_user",
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "old_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+        unique_id="test_user",
+    )
+    entry.add_to_hass(hass)
+
+    result = await entry.start_reconfigure_flow(hass)
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_PASSWORD: "new_password",
+            CONF_DEFAULT_DID: "5559876543",
+        },
+    )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "invalid_credentials"}
+
+
+async def test_reconfigure_flow_unexpected_exception(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test reconfiguration flow handles unexpected exceptions."""
+    mock_voipms_client.get_balance.side_effect = RuntimeError("Crash")
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="test_user",
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "old_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+        unique_id="test_user",
+    )
+    entry.add_to_hass(hass)
+
+    result = await entry.start_reconfigure_flow(hass)
+    result2 = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_PASSWORD: "new_password",
+            CONF_DEFAULT_DID: "5559876543",
+        },
+    )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "unknown"}

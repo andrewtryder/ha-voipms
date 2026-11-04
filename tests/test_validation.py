@@ -70,6 +70,18 @@ def test_validate_sms_message_rejects_empty(value: str) -> None:
         validate_sms_message(value)
 
 
+def test_validate_phone_number_rejects_non_string() -> None:
+    """Test non-string phone number is rejected."""
+    with pytest.raises(ValueError, match="Phone number must be a string"):
+        validate_phone_number(1234567890)  # type: ignore[arg-type]
+
+
+def test_validate_sms_message_rejects_non_string() -> None:
+    """Test non-string SMS message is rejected."""
+    with pytest.raises(ValueError, match="SMS message must be a string"):
+        validate_sms_message(12345)  # type: ignore[arg-type]
+
+
 def test_validate_sms_message_preserves_intentional_whitespace() -> None:
     """Test leading/trailing whitespace is preserved when content exists."""
     message = "  hello  "
