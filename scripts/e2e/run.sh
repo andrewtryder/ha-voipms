@@ -32,10 +32,10 @@ mkdir -p .e2e/config artifacts
 cleanup() {
     echo "Starting cleanup..."
     set +e
-    
+
     # Collect artifacts
     ./scripts/e2e/collect-artifacts.sh
-    
+
     # Bring down docker compose
     docker compose -f scripts/e2e/docker-compose.yml down -v
     echo "Cleanup complete."

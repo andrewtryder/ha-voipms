@@ -12,3 +12,10 @@ select = [
   "F",
   "I",
 ]
+
+[tool.coverage.run]
+source = ["custom_components/voipms"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
