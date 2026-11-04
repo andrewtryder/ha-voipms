@@ -28,7 +28,8 @@ if [[ -d "frontend" && -f "frontend/package.json" ]]; then
 fi
 
 echo "==> [5/6] Running Python test suite with offline mock isolation (>=90% coverage)"
-pytest
+coverage run -m pytest tests/
+coverage report --fail-under=90
 
 echo "==> [6/6] Verifying clean git working tree"
 git diff --exit-code
