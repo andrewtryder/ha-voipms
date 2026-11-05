@@ -8,6 +8,7 @@ Use the existing dependency workflow unless the task explicitly migrates package
 
 Preferred checks:
 
+- `./scripts/validate-local.sh`
 - `ruff format --check .`
 - `ruff check .`
 - `pytest`
