@@ -56,24 +56,42 @@ jobs:
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
-          cache-dependency-glob: requirements-dev.lock
+          cache-dependency-glob: "uv.lock"
       - name: Install dependencies
         run: |
           if [ "${{ matrix.pytest-ha }}" = "locked" ]; then
-            uv pip sync --system requirements-dev.lock
+            uv lock --check
+            uv sync --locked
           elif [ -n "${{ matrix.pytest-ha }}" ]; then
-            uv pip install --system ruff==0.17.1 zeep "pytest-homeassistant-custom-component==${{ matrix.pytest-ha }}"
+            uv venv .venv-compat
+            uv pip install --python .venv-compat/bin/python ruff==0.17.1 zeep coverage pytest-socket "pytest-homeassistant-custom-component==${{ matrix.pytest-ha }}"
           else
-            uv pip install --system ruff==0.17.1 zeep pytest-homeassistant-custom-component
+            uv venv .venv-compat
+            uv pip install --python .venv-compat/bin/python --upgrade ruff==0.17.1 zeep coverage pytest-socket pytest-homeassistant-custom-component
           fi
       - name: Run pre-commit hooks (locked baseline)
         if: matrix.pytest-ha == 'locked'
-        run: pre-commit run --all-files
+        run: uv run --locked pre-commit run --all-files
       - name: Check formatting
-        run: ruff format --check .
+        run: |
+          if [ "${{ matrix.pytest-ha }}" = "locked" ]; then
+            uv run --locked ruff format --check .
+          else
+            .venv-compat/bin/ruff format --check .
+          fi
       - name: Check linting
-        run: ruff check .
+        run: |
+          if [ "${{ matrix.pytest-ha }}" = "locked" ]; then
+            uv run --locked ruff check .
+          else
+            .venv-compat/bin/ruff check .
+          fi
       - name: Run tests and coverage
         run: |
-          PYTHONPATH=. coverage run -m pytest --disable-socket --allow-unix-socket tests/
-          coverage report --fail-under=90
+          if [ "${{ matrix.pytest-ha }}" = "locked" ]; then
+            uv run --locked coverage run -m pytest --disable-socket --allow-unix-socket tests/
+            uv run --locked coverage report --fail-under=90
+          else
+            PYTHONPATH=. .venv-compat/bin/python -m coverage run -m pytest --disable-socket --allow-unix-socket tests/
+            .venv-compat/bin/python -m coverage report --fail-under=90
+          fi

@@ -1,1 +1,0 @@
-# Runtime dependencies are declared in custom_components/voipms/manifest.json.

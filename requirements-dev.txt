@@ -1,9 +1,0 @@
-pytest
-pytest-asyncio
-pytest-homeassistant-custom-component
-voluptuous
-ruff==0.17.1
-coverage
-pre-commit==4.7.0
-pytest-socket==0.8.1
-zeep

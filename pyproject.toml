@@ -1,10 +1,41 @@
+[project]
+name = "ha-voipms"
+version = "0.0.0"
+description = "Home Assistant custom integration for VoIP.ms balance, registration, and SMS"
+readme = "README.md"
+requires-python = ">=3.14.2"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "coverage==7.16.2",
+    "pre-commit==4.7.0",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.4.0",
+    "pytest-cov==7.1.0",
+    "pytest-homeassistant-custom-component==0.13.375",
+    "pytest-socket==0.8.1",
+    "ruff==0.17.1",
+    "voluptuous==0.16.0",
+    "zeep==4.3.3",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
 [tool.ruff]
 target-version = "py314"
 line-length = 88
 
 [tool.ruff.lint]
-# Stable rule set matching prior CI enforcement under pinned ruff 0.16.
-# Pinning the tool version in requirements-dev.txt prevents floating-default drift.
+# Stable rule set matching prior CI enforcement under pinned ruff 0.17.
+# Pinning the tool version in pyproject.toml dev group prevents floating-default drift.
 select = [
   "E4",
   "E7",
