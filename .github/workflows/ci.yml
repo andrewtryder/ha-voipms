@@ -64,10 +64,10 @@ jobs:
             uv sync --locked
           elif [ -n "${{ matrix.pytest-ha }}" ]; then
             uv venv .venv-compat
-            uv pip install --python .venv-compat/bin/python ruff==0.17.1 zeep coverage pytest-socket "pytest-homeassistant-custom-component==${{ matrix.pytest-ha }}"
+            uv pip install --python .venv-compat/bin/python ruff==0.17.3 zeep coverage pytest-socket "pytest-homeassistant-custom-component==${{ matrix.pytest-ha }}"
           else
             uv venv .venv-compat
-            uv pip install --python .venv-compat/bin/python --upgrade ruff==0.17.1 zeep coverage pytest-socket pytest-homeassistant-custom-component
+            uv pip install --python .venv-compat/bin/python --upgrade ruff==0.17.3 zeep coverage pytest-socket pytest-homeassistant-custom-component
           fi
       - name: Run pre-commit hooks (locked baseline)
         if: matrix.pytest-ha == 'locked'
