@@ -4,9 +4,19 @@ import socket
 
 import pytest
 import pytest_socket
-from pytest_homeassistant_custom_component.plugins import HASocketBlockedError
 
 import custom_components.voipms  # noqa: F401
+
+try:
+    from pytest_homeassistant_custom_component.plugins import HASocketBlockedError
+except ImportError:
+    HASocketBlockedError = None  # type: ignore[assignment,misc]
+
+
+def _cleanup_socket_error(exc: BaseException) -> None:
+    if HASocketBlockedError is not None and isinstance(exc, HASocketBlockedError):
+        if exc in HASocketBlockedError.instances:
+            HASocketBlockedError.instances.remove(exc)
 
 
 def test_socket_creation_blocked_by_default() -> None:
@@ -16,11 +26,7 @@ def test_socket_creation_blocked_by_default() -> None:
 
     # Narrowly remove only this test's deliberate exception instance so verify_cleanup
     # does not fail teardown, while preserving any unexpected socket attempt diagnostics.
-    if (
-        isinstance(exc_info.value, HASocketBlockedError)
-        and exc_info.value in HASocketBlockedError.instances
-    ):
-        HASocketBlockedError.instances.remove(exc_info.value)
+    _cleanup_socket_error(exc_info.value)
 
 
 def test_dns_resolution_blocked_by_default() -> None:
@@ -33,8 +39,4 @@ def test_dns_resolution_blocked_by_default() -> None:
 
     # Narrowly remove only this test's deliberate exception instance so verify_cleanup
     # does not fail teardown, while preserving any unexpected socket attempt diagnostics.
-    if (
-        isinstance(exc_info.value, HASocketBlockedError)
-        and exc_info.value in HASocketBlockedError.instances
-    ):
-        HASocketBlockedError.instances.remove(exc_info.value)
+    _cleanup_socket_error(exc_info.value)
