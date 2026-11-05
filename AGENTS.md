@@ -38,11 +38,6 @@ When adding a license file, match the license type to the repository visibility:
 
 ## Related docs
 
-- `docs/concepts.md`
-- `docs/profiles.md`
-- `docs/detection.md`
-- `docs/branch-protection.md`
-- `docs/template-drift.md`
-- `docs/deployment/cloudflare.md`
-- `docs/deployment/gcp.md`
-- `docs/deployment/railway.md`
+- [README.md](README.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [docs/sms-and-lovelace.md](docs/sms-and-lovelace.md)
