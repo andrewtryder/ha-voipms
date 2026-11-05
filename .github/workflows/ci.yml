@@ -27,6 +27,8 @@ jobs:
       - name: Build
         working-directory: ./frontend
         run: npm run build
+      - name: Verify reproducible Lovelace bundle
+        run: git diff --exit-code custom_components/voipms/frontend/voipms-sms-card.js
 
   python-ci:
     name: Run Pytest & Linting
@@ -35,6 +37,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - ha-label: "locked"
+            python-version: "3.14"
+            pytest-ha: "locked"
           - ha-label: "2026.3"
             python-version: "3.14"
             pytest-ha: "0.13.317"
@@ -51,19 +56,24 @@ jobs:
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
+          cache-dependency-glob: requirements-dev.lock
       - name: Install dependencies
         run: |
-          uv pip install --system ruff==0.16.0 zeep
-          if [ -n "${{ matrix.pytest-ha }}" ]; then
-            uv pip install --system "pytest-homeassistant-custom-component==${{ matrix.pytest-ha }}"
+          if [ "${{ matrix.pytest-ha }}" = "locked" ]; then
+            uv pip sync --system requirements-dev.lock
+          elif [ -n "${{ matrix.pytest-ha }}" ]; then
+            uv pip install --system ruff==0.17.1 zeep "pytest-homeassistant-custom-component==${{ matrix.pytest-ha }}"
           else
-            uv pip install --system pytest-homeassistant-custom-component
+            uv pip install --system ruff==0.17.1 zeep pytest-homeassistant-custom-component
           fi
+      - name: Run pre-commit hooks (locked baseline)
+        if: matrix.pytest-ha == 'locked'
+        run: pre-commit run --all-files
       - name: Check formatting
         run: ruff format --check .
       - name: Check linting
         run: ruff check .
       - name: Run tests and coverage
         run: |
-          PYTHONPATH=. coverage run -m pytest tests/
+          PYTHONPATH=. coverage run -m pytest --disable-socket --allow-unix-socket tests/
           coverage report --fail-under=90

@@ -1,13 +1,24 @@
 __pycache__/
-*.pyc
+*.py[cod]
 .DS_Store
 *.env
+.venv/
 venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Frontend caches
+frontend/node_modules/
+*.tsbuildinfo
 
 # Coverage artifacts
 coverage/
 htmlcov/
 .coverage
+.coverage.*
+coverage.xml
+coverage.json
 
 # Local Home Assistant config (docker-compose)
 config/
