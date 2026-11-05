@@ -13,7 +13,7 @@ Thank you for your interest in contributing to this project! We welcome contribu
    This runs pre-commit hooks, Ruff formatting & linting, frontend compilation, and pytest with statement coverage enforcement (>=90% gate).
 4. **Open a pull request** with a clear title and description of your changes.
 
-The script requires Python 3.14.2 or newer, uv, npm, and Git. It installs the pinned Python requirements into a temporary virtual environment and uses `npm ci` for the frontend. Regenerate the Python lock after changing requirements with `uv pip compile --python-version 3.14.2 --universal requirements-dev.txt -o requirements-dev.lock`; normal validation uses uv pip and npm.
+The script requires Python 3.14.2 or newer, uv, npm, and Git. Python dependencies and developer tooling are declared in `pyproject.toml` and locked in `uv.lock`. Sync dependencies with `uv sync --locked` and update the lockfile with `uv lock`; frontend dependencies use `npm ci`.
 
 ## Pull request guidelines
 
