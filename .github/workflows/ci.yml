@@ -62,9 +62,9 @@ jobs:
           if [ "${{ matrix.pytest-ha }}" = "locked" ]; then
             uv pip sync --system requirements-dev.lock
           elif [ -n "${{ matrix.pytest-ha }}" ]; then
-            uv pip install --system ruff==0.17.1 pytest-socket==0.8.1 zeep "pytest-homeassistant-custom-component==${{ matrix.pytest-ha }}"
+            uv pip install --system ruff==0.17.1 zeep "pytest-homeassistant-custom-component==${{ matrix.pytest-ha }}"
           else
-            uv pip install --system ruff==0.17.1 pytest-socket==0.8.1 zeep pytest-homeassistant-custom-component
+            uv pip install --system ruff==0.17.1 zeep pytest-homeassistant-custom-component
           fi
       - name: Run pre-commit hooks (locked baseline)
         if: matrix.pytest-ha == 'locked'
