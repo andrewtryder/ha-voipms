@@ -22,15 +22,17 @@ This unofficial custom integration connects Home Assistant to the VoIP.ms REST A
 
 ## Requirements and compatibility
 
-- Home Assistant **2026.3.0 or newer** and HACS.
+- Home Assistant **2026.3.0 or newer** and HACS (or the built-in Home Assistant Marketplace in **2026.11+**).
 - A VoIP.ms account with the **SOAP and REST/JSON API** enabled in the VoIP.ms portal.
 - Your VoIP.ms API username, API password, and outbound Home Assistant IP address allowed in the VoIP.ms API settings.
 - An SMS-capable default DID (10-digit NANPA or E.164 format) on your VoIP.ms account.
 - For inbound SMS webhooks: an externally reachable Home Assistant URL or Home Assistant Cloud.
 
-## Install with HACS
+## Install with HACS or Home Assistant Marketplace
 
-1. In HACS, add `https://github.com/andrewtryder/ha-voipms` as a custom repository in the **Integration** category, or use the HACS badge above.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=andrewtryder&repository=ha-voipms&category=integration)
+
+1. Click the **Open your Home Assistant instance** button above (backwards compatible: opens **HACS** on earlier versions and the built-in **Home Assistant Marketplace** on **2026.11+**), or manually add `https://github.com/andrewtryder/ha-voipms` as a custom repository in the **Integration** category.
 2. Find and install **VoIP.MS**.
 3. Restart Home Assistant.
 
