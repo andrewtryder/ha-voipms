@@ -9,6 +9,7 @@ from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms.const import (
+    CONF_CREATE_NOTIFICATIONS,
     CONF_DEFAULT_DID,
     DOMAIN,
     EVENT_INBOUND_CALL,
@@ -359,3 +360,54 @@ async def test_process_inbound_sms_long_message_truncation(
     sensor_state = hass.states.get(_get_last_sms_entity_id(hass, entry))
     assert sensor_state is not None
     assert "message" not in sensor_state.attributes
+
+
+async def test_notifications_disabled_skips_call_and_sms_notifications(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test the create_notifications option suppresses persistent notifications.
+
+    Events and logbook entries are still produced.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+        options={CONF_CREATE_NOTIFICATIONS: False},
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    captured_calls: list = []
+    captured_sms: list = []
+    hass.bus.async_listen(
+        EVENT_INBOUND_CALL, lambda event: captured_calls.append(event.data)
+    )
+    hass.bus.async_listen(
+        EVENT_INBOUND_SMS, lambda event: captured_sms.append(event.data)
+    )
+
+    sms = InboundSms(
+        sender="5559876543",
+        recipient="5551234567",
+        message="Hello",
+        message_id="sms-1",
+        timestamp="2024-01-01 12:00:00",
+    )
+
+    with patch(
+        "custom_components.voipms.processor.persistent_notification.async_create"
+    ) as mock_create:
+        await process_call(hass, entry, _sample_call())
+        await process_inbound_sms(hass, entry, sms)
+        await hass.async_block_till_done()
+
+        mock_create.assert_not_called()
+
+    assert len(captured_calls) == 1
+    assert len(captured_sms) == 1

@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from .const import (
+    CONF_CREATE_NOTIFICATIONS,
     DIRECTION_INBOUND,
     DOMAIN,
     EVENT_INBOUND_CALL,
@@ -92,6 +93,11 @@ def _log_call_to_logbook(
     hass.bus.async_fire(EVENT_LOGBOOK_ENTRY, logbook_data)
 
 
+def _notifications_enabled(entry: VoipmsConfigEntry) -> bool:
+    """Return whether persistent notifications are enabled for this entry."""
+    return entry.options.get(CONF_CREATE_NOTIFICATIONS, True)
+
+
 def _create_inbound_sms_notification(
     hass: HomeAssistant, entry: VoipmsConfigEntry, sms: InboundSms
 ) -> None:
@@ -166,7 +172,8 @@ async def process_inbound_sms(
     }
     hass.bus.async_fire(EVENT_INBOUND_SMS, event_data)
     _log_inbound_sms_to_logbook(hass, entry, sms)
-    _create_inbound_sms_notification(hass, entry, sms)
+    if _notifications_enabled(entry):
+        _create_inbound_sms_notification(hass, entry, sms)
     _notify_last_sms_sensor(hass, entry, sms)
 
     _LOGGER.info("Inbound SMS processed: message_id=%s", sms.message_id)
@@ -194,7 +201,8 @@ async def process_call(
     }
     hass.bus.async_fire(event, event_data)
     _log_call_to_logbook(hass, entry, call)
-    _create_call_notification(hass, entry, call)
+    if _notifications_enabled(entry):
+        _create_call_notification(hass, entry, call)
     _notify_last_call_sensor(hass, entry, call)
 
     _LOGGER.info("Call processed: unique_id=%s", call.unique_id)

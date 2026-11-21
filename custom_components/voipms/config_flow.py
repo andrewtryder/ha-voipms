@@ -13,7 +13,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
 from .api import VoipMsApiError, VoipMsRestClient
-from .const import CONF_DEFAULT_DID, DOMAIN
+from .const import CONF_CREATE_NOTIFICATIONS, CONF_DEFAULT_DID, DOMAIN
 from .validation import validate_phone_number
 
 _LOGGER = logging.getLogger(__name__)
@@ -233,6 +233,12 @@ class OptionsFlowHandler(config_entries.OptionsFlowWithReload):
                     vol.Optional(
                         "manage_webhook",
                         default=self.config_entry.options.get("manage_webhook", True),
+                    ): bool,
+                    vol.Optional(
+                        CONF_CREATE_NOTIFICATIONS,
+                        default=self.config_entry.options.get(
+                            CONF_CREATE_NOTIFICATIONS, True
+                        ),
                     ): bool,
                 }
             ),
