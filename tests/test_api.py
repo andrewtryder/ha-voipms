@@ -441,6 +441,7 @@ def test_get_sms_non_success_status(status: str) -> None:
     [
         ("getCDR", {"status": "no_cdr"}),
         ("getVoicemails", {"status": "no_voicemails"}),
+        ("getVoicemailMessages", {"status": "no_messages"}),
         ("getSubAccounts", {"status": "no_subaccounts"}),
         ("getSMS", {"status": "no_sms"}),
     ],
@@ -454,6 +455,24 @@ def test_valid_no_data_responses(method: str, payload: dict) -> None:
         result = client.call(method)
 
     assert result["status"] == payload["status"]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"status": "success", "accounts": [{"account": "100000_sub1"}]},
+        {"status": "success", "subaccounts": [{"account": "100000_sub1"}]},
+    ],
+)
+def test_get_sub_accounts_accepts_accounts_key(payload: dict) -> None:
+    """Test getSubAccounts accepts the documented ``accounts`` key."""
+    response = _response(json.dumps(payload).encode())
+    client = VoipMsRestClient("user", "pass")
+
+    with _patch_urlopen(response):
+        result = client.call("getSubAccounts")
+
+    assert result["status"] == "success"
 
 
 @pytest.mark.parametrize("method", ["sendSMS", "setSMS"])

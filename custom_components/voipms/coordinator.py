@@ -92,7 +92,9 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
             ]:
                 raise ConfigEntryAuthFailed(f"Auth failed: {status}")
             elif status == "success":
-                subaccounts = subs_result.get("subaccounts", [])
+                subaccounts = subs_result.get("accounts")
+                if subaccounts is None:
+                    subaccounts = subs_result.get("subaccounts", [])
                 if isinstance(subaccounts, dict):
                     subaccounts = [subaccounts]
                 if isinstance(subaccounts, list):
@@ -181,6 +183,9 @@ class VoipmsDataUpdateCoordinator(DataUpdateCoordinator):
                                     messages = [messages]
                                 if isinstance(messages, list):
                                     total_messages += len(messages)
+                            elif status == "no_messages":
+                                # Empty mailbox is a normal, valid state.
+                                pass
                             else:
                                 raise UpdateFailed(
                                     f"Failed to fetch messages for {mailbox_id}"

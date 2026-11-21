@@ -1,5 +1,6 @@
 """Test VoIP.ms model validation."""
 
+import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -289,7 +290,7 @@ def test_call_record_parses_unknown_direction_cdr() -> None:
     record = {
         "callerid": "5551234567",
         "destination": "5559876543",
-        "description": "Internal routing",
+        "description": "",
         "date": "2024-01-01 14:00:00",
         "duration": "10",
         "disposition": "ANSWERED",
@@ -298,15 +299,48 @@ def test_call_record_parses_unknown_direction_cdr() -> None:
     call = CallRecord.parse_cdr_record(record)
     assert call is not None
     assert call.direction == DIRECTION_UNKNOWN
-    assert call.unique_id == (
-        "2024-01-01 14:00:00|5551234567|5559876543|Internal routing|10|0"
-    )
+    assert call.unique_id == ("2024-01-01 14:00:00|5551234567|5559876543||10|0")
 
     # With explicit provider direction field
     record["direction"] = "outbound"
     call2 = CallRecord.parse_cdr_record(record)
     assert call2 is not None
     assert call2.direction == "outbound"
+
+
+@pytest.mark.parametrize(
+    ("description", "expected"),
+    [
+        ("Inbound DID", "inbound"),
+        ("Inbound - Local Caller", "inbound"),
+        ("Voicemail", "inbound"),
+        ("Local", "outbound"),
+        ("Long Distance", "outbound"),
+        ("USA - Idaho", "outbound"),
+    ],
+)
+def test_call_record_classifies_real_voipms_descriptions(
+    description: str, expected: str
+) -> None:
+    """Test direction for VoIP.ms CDR descriptions.
+
+    Outbound CDRs carry the rate/route name rather than the word "outbound".
+    """
+    from custom_components.voipms.models import CallRecord
+
+    call = CallRecord.parse_cdr_record(
+        {
+            "callerid": "5551234567",
+            "destination": "5559876543",
+            "description": description,
+            "date": "2024-01-01 15:00:00",
+            "duration": "00:00:07",
+            "disposition": "ANSWERED",
+            "uniqueid": "123",
+        }
+    )
+    assert call is not None
+    assert call.direction == expected
 
 
 def test_call_record_returns_none_without_date() -> None:

@@ -257,3 +257,69 @@ async def test_coordinator_clears_cached_registrations_on_no_account(
 
     assert coordinator.last_update_success
     assert coordinator.data["registrations"] == {}
+
+
+async def test_coordinator_reads_accounts_key_for_registrations(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test registrations are built from the documented ``accounts`` key."""
+    mock_voipms_client.get_sub_accounts.return_value = {
+        "status": "success",
+        "accounts": [
+            {
+                "account": "100000_ata",
+                "description": "Kids phone",
+                "device_type": "2",
+                "callerid_number": "5551234567",
+                "protocol": "1",
+            }
+        ],
+    }
+    mock_voipms_client.get_registration_status.return_value = {
+        "status": "success",
+        "registered": "yes",
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = entry.runtime_data.coordinator
+    assert coordinator.data["registrations"]["100000_ata"]["registered"] is True
+
+
+async def test_coordinator_treats_empty_mailbox_as_zero(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test an empty mailbox (no_messages) loads with zero voicemails."""
+    mock_voipms_client.get_voicemails.return_value = {
+        "status": "success",
+        "voicemails": [{"mailbox": "123"}],
+    }
+    mock_voipms_client.get_voicemail_messages.return_value = {"status": "no_messages"}
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state == ConfigEntryState.LOADED
+    coordinator = entry.runtime_data.coordinator
+    assert coordinator.data["voicemail_count"] == 0
