@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.2.0](https://github.com/andrewtryder/ha-voipms/compare/v2.1.6...v2.2.0) (2026-11-24)
+
+
+### Features
+
+* add notification opt-out and fix VoIP.ms response handling ([aa0ff54](https://github.com/andrewtryder/ha-voipms/commit/aa0ff54c4dafa88d2d742e777e6a05a727207679))
+* add notification opt-out and fix VoIP.ms response handling ([#135](https://github.com/andrewtryder/ha-voipms/issues/135)) ([aa0ff54](https://github.com/andrewtryder/ha-voipms/commit/aa0ff54c4dafa88d2d742e777e6a05a727207679))
+* **options:** add option to turn off persistent notifications ([7428bc6](https://github.com/andrewtryder/ha-voipms/commit/7428bc6a4f4804121c8219bc0c95267b7790bc8c))
+
+
+### Bug Fixes
+
+* handle real VoIP.ms CDR, subaccount, and empty-mailbox responses ([66527fc](https://github.com/andrewtryder/ha-voipms/commit/66527fc46941458bd1564e392851f752b0fe3ca3))
+
 ## [2.1.6](https://github.com/andrewtryder/ha-voipms/compare/v2.1.5...v2.1.6) (2026-10-22)
 
 
