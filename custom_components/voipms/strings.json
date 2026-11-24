@@ -49,7 +49,8 @@
       "init": {
         "title": "VoIP.ms Options",
         "data": {
-          "manage_webhook": "Automatically manage SMS Webhook"
+          "manage_webhook": "Automatically manage SMS Webhook",
+          "create_notifications": "Create notifications for calls and SMS"
         }
       }
     }

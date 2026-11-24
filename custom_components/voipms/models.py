@@ -142,6 +142,12 @@ class CallRecord:
             return DIRECTION_INBOUND
         if "outbound" in normalized or "outgoing" in normalized:
             return DIRECTION_OUTBOUND
+        # VoIP.ms labels inbound CDRs explicitly ("Inbound DID", "Inbound -
+        # Local Caller"), but outbound CDRs carry the rate/route name instead
+        # (e.g. "Local", "Long Distance"), so any other non-empty description
+        # is an outbound call.
+        if normalized.strip():
+            return DIRECTION_OUTBOUND
         return DIRECTION_UNKNOWN
 
     @staticmethod

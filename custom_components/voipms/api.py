@@ -21,6 +21,7 @@ MAX_RESPONSE_BYTES = 1_048_576
 _NO_DATA_STATUSES = frozenset(
     {
         "no_cdr",
+        "no_messages",
         "no_voicemails",
         "no_subaccounts",
         "no_sms",
@@ -60,8 +61,14 @@ def _validate_get_voicemail_messages(result: dict[str, Any]) -> bool:
 
 
 def _validate_get_sub_accounts(result: dict[str, Any]) -> bool:
-    """Validate getSubAccounts success payload."""
-    return _is_list_or_dict(result.get("subaccounts"))
+    """Validate getSubAccounts success payload.
+
+    VoIP.ms returns the list under ``accounts``; ``subaccounts`` is accepted
+    for backwards compatibility.
+    """
+    return _is_list_or_dict(result.get("accounts")) or _is_list_or_dict(
+        result.get("subaccounts")
+    )
 
 
 def _validate_get_registration_status(result: dict[str, Any]) -> bool:

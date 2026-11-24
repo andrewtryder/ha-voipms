@@ -206,6 +206,36 @@ async def test_options_flow_updates_manage_webhook(
     assert entry.options["manage_webhook"] is False
 
 
+async def test_options_flow_updates_create_notifications(
+    hass: HomeAssistant, mock_voipms_client
+) -> None:
+    """Test options flow can turn off persistent notifications."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="test_user",
+        data={
+            CONF_USERNAME: "test_user",
+            CONF_PASSWORD: "test_password",
+            CONF_DEFAULT_DID: "5551234567",
+        },
+        options={"manage_webhook": True},
+        unique_id="test_user",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result2 = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"manage_webhook": True, "create_notifications": False},
+    )
+    await hass.async_block_till_done()
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.options["create_notifications"] is False
+
+
 async def test_reconfigure_flow_success(
     hass: HomeAssistant, mock_voipms_client
 ) -> None:

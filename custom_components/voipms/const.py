@@ -9,6 +9,7 @@ DOMAIN = "voipms"
 LOGGER = logging.getLogger(__package__)
 
 CONF_DEFAULT_DID = "default_did"
+CONF_CREATE_NOTIFICATIONS = "create_notifications"
 
 UPDATE_INTERVAL = timedelta(minutes=5)
 
