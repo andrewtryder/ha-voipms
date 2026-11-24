@@ -6,7 +6,6 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, EVENT_LOGBOOK_ENTR
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms.const import (
     CONF_CREATE_NOTIFICATIONS,
@@ -18,6 +17,7 @@ from custom_components.voipms.const import (
 )
 from custom_components.voipms.models import CallRecord, InboundSms
 from custom_components.voipms.processor import process_call, process_inbound_sms
+from tests.ha_compat import MockConfigEntry
 
 
 def _get_last_call_entity_id(hass: HomeAssistant, entry: MockConfigEntry) -> str:

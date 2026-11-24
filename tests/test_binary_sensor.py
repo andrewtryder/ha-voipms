@@ -2,9 +2,9 @@
 
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms.const import CONF_DEFAULT_DID, DOMAIN
+from tests.ha_compat import MockConfigEntry
 
 
 async def test_registration_binary_sensors(

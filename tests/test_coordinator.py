@@ -4,10 +4,10 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, EVENT_LOGBOOK_ENTRY
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms.api import VoipMsApiError
 from custom_components.voipms.const import CONF_DEFAULT_DID, DOMAIN
+from tests.ha_compat import MockConfigEntry
 
 
 async def test_coordinator_fails_when_balance_fetch_fails(

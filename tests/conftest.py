@@ -1,11 +1,13 @@
 """Global fixtures for VoIP.ms integration tests."""
 
 from contextlib import ExitStack
+from importlib.util import find_spec
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-pytest_plugins = "pytest_homeassistant_custom_component"
+if find_spec("pytest_homeassistant") is None:
+    pytest_plugins = "pytest_homeassistant_custom_component"
 
 
 @pytest.fixture(autouse=True)

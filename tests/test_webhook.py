@@ -12,7 +12,6 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, EVENT_LOGBOOK_ENTR
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from homeassistant.util.aiohttp import MockRequest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms.api import VoipMsApiError
 from custom_components.voipms.const import (
@@ -21,6 +20,7 @@ from custom_components.voipms.const import (
     EVENT_INBOUND_SMS,
     build_webhook_callback_url,
 )
+from tests.ha_compat import MockConfigEntry
 
 
 async def test_webhook_registers_with_get_method(
