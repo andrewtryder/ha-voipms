@@ -6,7 +6,6 @@ from homeassistant.components.persistent_notification import (
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms.const import (
     CONF_DEFAULT_DID,
@@ -15,6 +14,7 @@ from custom_components.voipms.const import (
 )
 from custom_components.voipms.models import InboundSms
 from custom_components.voipms.processor import process_inbound_sms
+from tests.ha_compat import MockConfigEntry
 
 
 async def test_setup_unload_entry(hass: HomeAssistant, mock_voipms_client) -> None:

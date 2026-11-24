@@ -13,7 +13,7 @@ dev = [
     "pytest==9.0.3",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
-    "pytest-homeassistant-custom-component==0.13.375",
+    "pytest-homeassistant==2026.11.3",
     "pytest-socket==0.8.1",
     "ruff==0.17.5",
     "voluptuous==0.16.0",
@@ -29,6 +29,7 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = [
+    "-p", "no:respx",
     "--disable-socket",
     "--allow-unix-socket",
 ]

@@ -4,7 +4,6 @@ import pytest
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms.api import VoipMsApiError
 from custom_components.voipms.const import (
@@ -12,6 +11,7 @@ from custom_components.voipms.const import (
     DOMAIN,
     MAX_SMS_MESSAGE_LENGTH,
 )
+from tests.ha_compat import MockConfigEntry
 
 
 def _entry(

@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.voipms.api import VOIPMS_REST_API_URL
 from custom_components.voipms.const import CONF_DEFAULT_DID, DOMAIN
@@ -12,6 +11,7 @@ from custom_components.voipms.system_health import (
     async_get_system_health_info,
     async_register,
 )
+from tests.ha_compat import MockConfigEntry
 
 _REACH_PATH = (
     "custom_components.voipms.system_health.system_health.async_check_can_reach_url"
