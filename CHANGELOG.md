@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/andrewtryder/ha-voipms/compare/v2.2.0...v2.2.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **security:** upgrade Home Assistant test framework and Pillow ([#137](https://github.com/andrewtryder/ha-voipms/issues/137)) ([16ca81c](https://github.com/andrewtryder/ha-voipms/commit/16ca81ccc310cebfe30eccad05dcfd2d995afda6))
+
 ## [2.2.0](https://github.com/andrewtryder/ha-voipms/compare/v2.1.6...v2.2.0) (2026-11-24)
 
 
