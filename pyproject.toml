@@ -15,7 +15,7 @@ dev = [
     "pytest-cov==7.1.0",
     "pytest-homeassistant==2026.11.3",
     "pytest-socket==0.8.1",
-    "ruff==0.17.5",
+    "ruff==0.17.6",
     "voluptuous==0.16.0",
     "zeep==4.3.3",
 ]
